@@ -70,13 +70,13 @@
   <div id="root"></div>
 
   <script type="text/babel" data-type="module">
-    import React, { useState, useEffect, useMemo, useRef } from 'react';
+    import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
     import { createRoot } from 'react-dom/client';
     import {
       Home, FileText, Copy, Plus, Settings, Calendar, MapPin, Users,
       Briefcase, DollarSign, Share, Download, Upload, ChevronRight,
       ChevronDown, Trash2, Clock, Image as ImageIcon, Link as LinkIcon,
-      AlignLeft, ArrowUp, ArrowDown, Printer, Wand2, MoreHorizontal,
+      AlignLeft, ArrowUp, ArrowDown, Wand2, MoreHorizontal,
       CheckCircle2, Circle, Sun, Cloud, ChevronLeft, X, Camera, Palette,
       Globe, Tag
     } from 'lucide-react';
@@ -327,7 +327,7 @@
                   <button onClick={() => handleCreate(template)} className={`flex-1 ${cMain.bgLight} ${cMain.text} py-2.5 rounded-xl font-bold flex items-center justify-center active:scale-95 transition-transform ${cMain.bgMedium}`}>
                     <Copy size={16} className="mr-2" />この構成で作る
                   </button>
-                  <button onClick={() => handleDelete(template.id)} className="p-2.5 bg-rose-50 text-rose-400 rounded-xl active:scale-95 transition-transform hover:bg-rose-100">
+                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(template.id); }} className="p-2.5 bg-rose-50 text-rose-400 rounded-xl active:scale-95 transition-transform hover:bg-rose-100">
                     <Trash2 size={16} />
                   </button>
                 </div>
@@ -338,7 +338,7 @@
       );
     };
 
-    const TripEditor = ({ currentTrip, updateCurrentTrip, handleDelete, setView, currentTheme }) => {
+    const TripEditor = ({ currentTrip, updateCurrentTrip, handleDelete, setView, currentTheme, showAlert }) => {
       if (!currentTrip) return null;
       const daysCount = calculateDays(currentTrip.startDate, currentTrip.endDate) || 1;
       const [activeDay, setActiveDay] = useState(1);
@@ -407,7 +407,7 @@
                  {currentTrip.coverImage ? (
                    <>
                      <img src={currentTrip.coverImage} alt="Cover" className="w-full h-auto object-contain bg-white/50" />
-                     <button onClick={() => updateCurrentTrip({ coverImage: '' })} className="absolute top-4 right-4 bg-stone-800/50 text-white rounded-full p-2 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-400"><X size={16} /></button>
+                     <button onClick={() => updateCurrentTrip({ coverImage: '' })} className="absolute top-4 right-4 bg-stone-800/50 text-white rounded-full p-2 backdrop-blur-sm opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity hover:bg-rose-400"><X size={16} /></button>
                    </>
                  ) : (
                    <label className={`absolute inset-0 flex flex-col items-center justify-center ${cMain.text} cursor-pointer hover:bg-white/40 transition-colors py-10`}>
@@ -419,7 +419,7 @@
                             try {
                               const base64Img = await compressImage(file, 1200);
                               updateCurrentTrip({ coverImage: base64Img });
-                            } catch (err) { alert('画像の読み込みに失敗しました'); }
+                            } catch (err) { showAlert('画像の読み込みに失敗しました'); }
                           }
                         }} />
                    </label>
@@ -573,7 +573,7 @@
                                   <button onClick={() => {
                                       const newSchedules = [...currentTrip.schedules[activeDay]];
                                       newSchedules[index].images = itemImages.filter((_, i) => i !== imgIndex); updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
-                                    }} className="absolute -top-2 -right-2 bg-stone-800/60 backdrop-blur text-white rounded-full p-1.5 shadow-md hover:bg-rose-400 transition-colors opacity-0 group-hover/img:opacity-100 sm:opacity-100"><X size={12} /></button>
+                                    }} className="absolute -top-2 -right-2 bg-stone-800/60 backdrop-blur text-white rounded-full p-1.5 shadow-md hover:bg-rose-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover/img:opacity-100"><X size={12} /></button>
                                 </div>
                               ))}
                               {itemImages.length < 3 && (
@@ -587,7 +587,7 @@
                                           const base64Img = await compressImage(file);
                                           const newSchedules = [...currentTrip.schedules[activeDay]];
                                           newSchedules[index].images = [...itemImages, base64Img]; updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
-                                        } catch (err) { alert('画像の読み込みに失敗しました'); }
+                                        } catch (err) { showAlert('画像の読み込みに失敗しました'); }
                                       }
                                     }} />
                                 </label>
@@ -595,7 +595,7 @@
                             </div>
                           </div>
                         </div>
-                        <button className="absolute top-4 right-4 bg-white border border-stone-100 text-stone-300 rounded-full p-2 shadow-sm hover:text-rose-400 hover:border-rose-100 hover:bg-rose-50 transition-all opacity-0 group-hover:opacity-100 sm:opacity-100" onClick={() => {
+                        <button className="absolute top-4 right-4 bg-white border border-stone-100 text-stone-300 rounded-full p-2 shadow-sm hover:text-rose-400 hover:border-rose-100 hover:bg-rose-50 transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100" onClick={() => {
                              const newSchedules = currentTrip.schedules[activeDay].filter((_, i) => i !== index); updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
                           }}><Trash2 size={16} /></button>
                      </div>
@@ -624,7 +624,7 @@
                       <input type="text" className={`flex-1 outline-none bg-transparent py-1 font-medium ${item.checked ? 'line-through text-stone-300' : 'text-stone-700'}`} value={item.name} placeholder="持ち物を入力" onChange={(e) => {
                           const newItems = [...currentTrip.items]; newItems[index].name = e.target.value; updateItems(newItems);
                         }}/>
-                      <button className="text-stone-300 hover:text-rose-400 opacity-0 group-hover:opacity-100 p-1 transition-all" onClick={() => updateItems(currentTrip.items.filter((_, i) => i !== index))}><Trash2 size={16} /></button>
+                      <button className="text-stone-300 hover:text-rose-400 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1 transition-all" onClick={() => updateItems(currentTrip.items.filter((_, i) => i !== index))}><Trash2 size={16} /></button>
                     </div>
                   ))}
                   {currentTrip.items.length === 0 && <p className="text-sm text-stone-400 text-center py-4 font-medium">持ち物を追加しましょう</p>}
@@ -646,7 +646,7 @@
                             const newBudgets = [...currentTrip.budgets]; newBudgets[index].amount = e.target.value; updateBudgets(newBudgets);
                           }}/>
                       </div>
-                      <button className="text-stone-300 hover:text-rose-400 opacity-0 group-hover:opacity-100 p-1.5 transition-all" onClick={() => updateBudgets(currentTrip.budgets.filter((_, i) => i !== index))}><Trash2 size={18} /></button>
+                      <button className="text-stone-300 hover:text-rose-400 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 transition-all" onClick={() => updateBudgets(currentTrip.budgets.filter((_, i) => i !== index))}><Trash2 size={18} /></button>
                     </div>
                   ))}
                 </div>
@@ -746,8 +746,7 @@
                 <button onClick={() => setView('edit')} className={`text-white ${cMain.bgMain} ${cMain.bgHover} px-5 py-2 rounded-full font-bold transition-colors shadow-md ${cMain.shadowLight}`}>
                   編集
                 </button>
-                <button onClick={() => window.print()} className="text-stone-600 bg-white p-2.5 rounded-full hover:bg-stone-50 shadow-sm border border-stone-100"><Printer size={18} /></button>
-                <button onClick={() => handleSaveAsTemplate(currentTrip)} className="text-stone-600 bg-white p-2.5 rounded-full hover:bg-stone-50 shadow-sm border border-stone-100"><Copy size={18} /></button>
+                <button onClick={() => handleSaveAsTemplate(currentTrip)} className="text-stone-600 bg-white p-2.5 rounded-full hover:bg-stone-50 shadow-sm border border-stone-100" title="テンプレートとして保存"><Copy size={18} /></button>
               </div>
             </div>
           </div>
@@ -831,7 +830,7 @@
                                       <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${cSched.bgLight}`}></div>
                                       <h4 className="text-xl font-extrabold text-stone-700 mb-3 tracking-tight leading-snug break-words">{item.content || '予定なし'}</h4>
                                       
-                                      <div className="flex flex-wrap gap-2 mb-2">
+                                      <div className="flex flex-wrap gap-2 mb-2 w-full">
                                         {item.location && (
                                           <span className={`inline-flex items-center px-3 py-1.5 bg-stone-50 text-stone-600 rounded-xl text-sm font-bold border border-stone-100 break-words max-w-full`}>
                                             <MapPin size={14} className={`mr-1.5 ${cSched.text} flex-shrink-0`} /> <span className="truncate">{item.location}</span>
@@ -851,15 +850,16 @@
                                       </div>
                                       
                                       {item.memo && (
-                                        <div className="mt-4 relative pl-4 py-1 text-sm text-stone-500 whitespace-pre-wrap leading-relaxed font-medium break-words">
+                                        <div className="mt-4 relative pl-4 py-1 text-sm text-stone-500 whitespace-pre-wrap leading-relaxed font-medium break-words w-full">
                                           <div className={`absolute left-0 top-0 bottom-0 w-1 ${cSched.bgMedium} rounded-full`}></div>
                                           {item.memo}
                                         </div>
                                       )}
+                                      
                                       {itemImages.length > 0 && (
                                         <div className="mt-5 flex gap-3 overflow-x-auto hide-scrollbar pb-2 no-print w-full max-w-full">
                                           {itemImages.map((img, imgIndex) => (
-                                            <img key={imgIndex} src={img} alt="添付画像" onClick={() => setViewerData({ isOpen: true, images: itemImages, currentIndex: imgIndex })} className="h-32 w-auto max-w-[75vw] sm:max-w-[80vw] rounded-xl object-contain border border-stone-100 flex-shrink-0 cursor-pointer active:opacity-70 transition-opacity bg-stone-50" />
+                                            <img key={imgIndex} src={img} alt="添付画像" onClick={() => setViewerData({ isOpen: true, images: itemImages, currentIndex: imgIndex })} className="h-32 w-auto max-w-[75vw] sm:max-w-[80vw] rounded-2xl object-contain border border-stone-100 flex-shrink-0 cursor-pointer active:opacity-70 transition-opacity bg-stone-50" />
                                           ))}
                                         </div>
                                       )}
@@ -939,7 +939,7 @@
       );
     };
 
-    const SettingsView = ({ trips, setTrips, currentThemeId, setCurrentThemeId, currentTheme }) => {
+    const SettingsView = ({ trips, setTrips, currentThemeId, setCurrentThemeId, currentTheme, showAlert }) => {
       const cMain = colorClasses[currentTheme.primary];
       return (
         <div className="pb-24 pt-8 px-4 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -989,8 +989,8 @@
                       reader.onload = (event) => {
                         try {
                           const imported = JSON.parse(event.target.result);
-                          if (Array.isArray(imported)) { setTrips(imported); alert('インポートしました'); } else alert('不正なデータです');
-                        } catch(err) { alert('エラー: ' + err.message); }
+                          if (Array.isArray(imported)) { setTrips(imported); showAlert('インポートしました'); } else showAlert('不正なデータです');
+                        } catch(err) { showAlert('エラー: ' + err.message); }
                       };
                       reader.readAsText(file);
                     }}/>
@@ -1032,6 +1032,29 @@
       const [currentTripId, setCurrentTripId] = useState(null);
       const [currentThemeId, setCurrentThemeId] = useState('sakura');
       const [isLoaded, setIsLoaded] = useState(false);
+      
+      const [modalConfig, setModalConfig] = useState({ isOpen: false, message: '', onConfirm: null, isAlert: false });
+
+      const showAlert = useCallback((message) => {
+        setModalConfig({
+          isOpen: true,
+          message,
+          isAlert: true,
+          onConfirm: () => setModalConfig({ isOpen: false, message: '', onConfirm: null, isAlert: false })
+        });
+      }, []);
+
+      const showConfirm = useCallback((message, onConfirmAction) => {
+        setModalConfig({
+          isOpen: true,
+          message,
+          isAlert: false,
+          onConfirm: () => {
+            onConfirmAction();
+            setModalConfig({ isOpen: false, message: '', onConfirm: null, isAlert: false });
+          }
+        });
+      }, []);
 
       useEffect(() => {
         const savedTrips = localStorage.getItem('journey_trips');
@@ -1050,12 +1073,14 @@
             localStorage.setItem('journey_trips', JSON.stringify(trips));
             localStorage.setItem('journey_theme', currentThemeId);
           } catch (e) {
-            console.error(e); alert('保存容量の上限に達しました。不要な画像を削除してください。');
+            console.error(e); 
+            showAlert('保存容量の上限に達しました。不要な画像を削除してください。');
           }
         }
-      }, [trips, currentThemeId, isLoaded]);
+      }, [trips, currentThemeId, isLoaded, showAlert]);
 
       const currentTheme = THEMES[currentThemeId];
+      const cMain = colorClasses[currentTheme.primary];
 
       useEffect(() => {
         document.documentElement.style.setProperty('--app-bg', currentTheme.bgHex);
@@ -1078,24 +1103,49 @@
 
       const handleSaveAsTemplate = (trip) => {
         const newTemplate = { ...trip, id: generateId(), isTemplate: true, title: trip.title + ' (テンプレート)' };
-        setTrips([newTemplate, ...trips]); alert('テンプレートとして保存しました');
+        setTrips([newTemplate, ...trips]); showAlert('テンプレートとして保存しました');
       };
 
       const handleDelete = (id) => {
-        if (confirm('本当に削除しますか？')) {
-          setTrips(prev => prev.filter(t => t.id !== id));
-          if (currentTripId === id) { setView('home'); setCurrentTripId(null); }
-        }
+        showConfirm('本当に削除しますか？', () => {
+          setTrips(prev => {
+            const newTrips = prev.filter(t => t.id !== id);
+            return newTrips;
+          });
+          if (currentTripId === id) { 
+            setView('home'); 
+            setCurrentTripId(null); 
+          }
+        });
       };
 
       return (
         <div className="min-h-screen relative selection:bg-stone-200 transition-colors duration-500">          
           {view === 'home' && <HomeView activeTrips={activeTrips} handleCreate={handleCreate} setCurrentTripId={setCurrentTripId} setView={setView} currentTheme={currentTheme} />}
           {view === 'templates' && <TemplatesView templates={templates} handleCreate={handleCreate} handleDelete={handleDelete} currentTheme={currentTheme} />}
-          {view === 'edit' && <TripEditor currentTrip={currentTrip} updateCurrentTrip={updateCurrentTrip} handleDelete={handleDelete} setView={setView} currentTheme={currentTheme} />}
+          {view === 'edit' && <TripEditor currentTrip={currentTrip} updateCurrentTrip={updateCurrentTrip} handleDelete={handleDelete} setView={setView} currentTheme={currentTheme} showAlert={showAlert} />}
           {view === 'view' && <TripViewer currentTrip={currentTrip} setView={setView} setCurrentTripId={setCurrentTripId} handleSaveAsTemplate={handleSaveAsTemplate} updateCurrentTrip={updateCurrentTrip} currentTheme={currentTheme} />}
-          {view === 'settings' && <SettingsView trips={trips} setTrips={setTrips} currentThemeId={currentThemeId} setCurrentThemeId={setCurrentThemeId} currentTheme={currentTheme} />}
+          {view === 'settings' && <SettingsView trips={trips} setTrips={setTrips} currentThemeId={currentThemeId} setCurrentThemeId={setCurrentThemeId} currentTheme={currentTheme} showAlert={showAlert} />}
           <TabBar view={view} setView={setView} currentTheme={currentTheme} />
+
+          {/* Custom Modal */}
+          {modalConfig.isOpen && (
+            <div className="fixed inset-0 z-[200] bg-black/50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+              <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-xl text-center border border-stone-100">
+                <p className="text-stone-700 font-bold mb-6 whitespace-pre-wrap">{modalConfig.message}</p>
+                <div className="flex gap-3 justify-center">
+                  {!modalConfig.isAlert && (
+                    <button onClick={() => setModalConfig({ isOpen: false, message: '', onConfirm: null, isAlert: false })} className="flex-1 bg-stone-100 text-stone-600 font-bold py-3.5 rounded-xl hover:bg-stone-200 transition-colors">
+                      キャンセル
+                    </button>
+                  )}
+                  <button onClick={() => { if(typeof modalConfig.onConfirm === 'function') modalConfig.onConfirm(); }} className={`flex-1 ${cMain.bgMain} text-white font-bold py-3.5 rounded-xl ${cMain.bgHover} shadow-md ${cMain.shadowLight} transition-colors`}>
+                    OK
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       );
     }
