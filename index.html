@@ -76,9 +76,9 @@
       Home, FileText, Copy, Plus, Settings, Calendar, MapPin, Users,
       Briefcase, DollarSign, Share, Download, Upload, ChevronRight,
       ChevronDown, Trash2, Clock, Image as ImageIcon, Link as LinkIcon,
-      AlignLeft, ArrowUp, ArrowDown, Wand2, MoreHorizontal,
+      AlignLeft, ArrowUp, ArrowDown, Printer, Wand2, MoreHorizontal,
       CheckCircle2, Circle, Sun, Cloud, ChevronLeft, X, Camera, Palette,
-      Globe, Tag
+      Globe, Tag, Sparkles
     } from 'lucide-react';
 
     // --- Configs & Themes ---
@@ -245,14 +245,17 @@
       const cMain = colorClasses[currentTheme.primary];
       return (
         <div className="pb-24 pt-8 px-4 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex justify-between items-end mb-8 pl-2">
-            <div>
-              <h1 className="text-3xl font-extrabold tracking-tight text-stone-700">旅のしおり</h1>
-              <p className="text-stone-400 mt-1 font-medium">Journey OS</p>
+          <div className="mb-10 pl-2 pt-2 text-center">
+            <div className="inline-flex items-center justify-center px-3 py-1.5 mb-3 bg-white rounded-full shadow-sm border border-stone-100">
+              <Sparkles size={14} className={`mr-1.5 ${cMain.text}`} />
+              <span className={`text-[10px] font-black tracking-widest uppercase ${cMain.text}`}>Journey OS</span>
             </div>
-            <button onClick={() => handleCreate()} className={`${cMain.bgMain} text-white p-3.5 rounded-full shadow-lg ${cMain.shadow} active:scale-95 transition-transform ${cMain.bgHover}`}>
-              <Plus size={24} />
-            </button>
+            <h1 className={`text-4xl sm:text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r ${cMain.gradient} pb-1.5 drop-shadow-sm`}>
+              旅のしおり
+            </h1>
+            <p className="text-stone-500 mt-2 font-bold text-sm">
+              あなただけの特別なプランを作ろう ✈️
+            </p>
           </div>
 
           {activeTrips.length === 0 ? (
@@ -308,9 +311,13 @@
       const cMain = colorClasses[currentTheme.primary];
       return (
         <div className="pb-24 pt-8 px-4 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-           <div className="pl-2 mb-8">
-            <h1 className="text-3xl font-extrabold tracking-tight text-stone-700">テンプレート</h1>
-            <p className="text-stone-400 mt-1 font-medium">過去のプランを再利用</p>
+           <div className="mb-10 pl-2 pt-2 text-center">
+            <div className="inline-flex items-center justify-center px-3 py-1.5 mb-3 bg-white rounded-full shadow-sm border border-stone-100">
+              <Copy size={14} className={`mr-1.5 ${cMain.text}`} />
+              <span className={`text-[10px] font-black tracking-widest uppercase ${cMain.text}`}>Templates</span>
+            </div>
+            <h1 className="text-3xl font-black tracking-tight text-stone-700">テンプレート</h1>
+            <p className="text-stone-500 mt-2 font-bold text-sm">過去のプランを再利用しよう</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {templates.map(template => (
@@ -388,13 +395,13 @@
       return (
         <div className="pb-32 min-h-screen animate-in fade-in duration-300">
           <div className="sticky top-0 z-40 glass-panel border-b border-stone-200/50">
-            <div className="flex items-center justify-between p-4 max-w-2xl mx-auto">
-              <button onClick={() => setView('view')} className={`text-stone-500 flex items-center font-bold px-3 py-1.5 rounded-full hover:bg-stone-100 transition-colors border border-transparent hover:border-stone-200`}>
-                <ChevronLeft size={20} className="mr-1" /> 完了
+            <div className="flex items-center justify-between py-2 px-4 max-w-2xl mx-auto">
+              <button onClick={() => setView('view')} className={`text-stone-500 flex items-center font-bold px-3 py-1 text-sm rounded-full hover:bg-stone-100 transition-colors border border-transparent hover:border-stone-200`}>
+                <ChevronLeft size={16} className="mr-1" /> 完了
               </button>
               <span className="font-extrabold text-stone-600 text-sm">編集中</span>
-              <button onClick={() => handleDelete(currentTrip.id)} className="text-rose-400 p-2 hover:bg-rose-50 rounded-full transition-colors">
-                <Trash2 size={20} />
+              <button onClick={() => handleDelete(currentTrip.id)} className="text-rose-400 p-1.5 hover:bg-rose-50 rounded-full transition-colors">
+                <Trash2 size={16} />
               </button>
             </div>
           </div>
@@ -738,15 +745,15 @@
       return (
         <div className="min-h-screen animate-in fade-in duration-300 pb-24 print:pb-0 relative">
           <div className="sticky top-0 z-40 glass-panel border-b border-stone-200/50 no-print">
-            <div className="flex items-center justify-between p-4 max-w-3xl mx-auto">
-              <button onClick={() => { setView('home'); setCurrentTripId(null); }} className="text-stone-600 flex items-center font-bold bg-white px-4 py-2 rounded-full hover:bg-stone-50 transition-colors shadow-sm border border-stone-100">
-                <ChevronLeft size={18} className="mr-1" /> 戻る
+            <div className="flex items-center justify-between py-2 px-4 max-w-3xl mx-auto">
+              <button onClick={() => { setView('home'); setCurrentTripId(null); }} className="text-stone-600 flex items-center font-bold bg-white px-3 py-1 text-sm rounded-full hover:bg-stone-50 transition-colors shadow-sm border border-stone-100">
+                <ChevronLeft size={16} className="mr-1" /> 戻る
               </button>
               <div className="flex space-x-2">
-                <button onClick={() => setView('edit')} className={`text-white ${cMain.bgMain} ${cMain.bgHover} px-5 py-2 rounded-full font-bold transition-colors shadow-md ${cMain.shadowLight}`}>
+                <button onClick={() => setView('edit')} className={`text-white ${cMain.bgMain} ${cMain.bgHover} px-4 py-1 text-sm rounded-full font-bold transition-colors shadow-md ${cMain.shadowLight}`}>
                   編集
                 </button>
-                <button onClick={() => handleSaveAsTemplate(currentTrip)} className="text-stone-600 bg-white p-2.5 rounded-full hover:bg-stone-50 shadow-sm border border-stone-100" title="テンプレートとして保存"><Copy size={18} /></button>
+                <button onClick={() => handleSaveAsTemplate(currentTrip)} className="text-stone-600 bg-white p-1.5 rounded-full hover:bg-stone-50 shadow-sm border border-stone-100" title="テンプレートとして保存"><Copy size={16} /></button>
               </div>
             </div>
           </div>
@@ -1002,21 +1009,29 @@
       );
     };
 
-    const TabBar = ({ view, setView, currentTheme }) => {
+    const TabBar = ({ view, setView, currentTheme, handleCreate }) => {
       if (view === 'edit' || view === 'view') return null;
       const cMain = colorClasses[currentTheme.primary];
       return (
         <div className="fixed bottom-0 left-0 w-full z-50 px-4 pb-6 pt-2 pointer-events-none no-print">
-          <div className="max-w-md mx-auto bg-white/80 backdrop-blur-xl border border-white/50 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex justify-around p-2 pointer-events-auto">
-            <button onClick={() => setView('home')} className={`p-3 rounded-full flex flex-col items-center justify-center w-16 transition-colors ${view === 'home' ? cMain.text : 'text-stone-300 hover:bg-stone-50'}`}>
+          <div className="max-w-md mx-auto bg-white/80 backdrop-blur-xl border border-white/50 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex justify-around items-center p-2 pointer-events-auto">
+            <button onClick={() => setView('home')} className={`p-2 rounded-full flex flex-col items-center justify-center w-16 transition-colors ${view === 'home' ? cMain.text : 'text-stone-300 hover:bg-stone-50'}`}>
               <Home size={24} className={view === 'home' ? 'fill-current' : ''} />
               <span className="text-[10px] mt-1 font-bold">ホーム</span>
             </button>
-            <button onClick={() => setView('templates')} className={`p-3 rounded-full flex flex-col items-center justify-center w-16 transition-colors ${view === 'templates' ? cMain.text : 'text-stone-300 hover:bg-stone-50'}`}>
+            
+            <button onClick={() => handleCreate()} className={`rounded-full flex flex-col items-center justify-center transition-transform active:scale-95 group`}>
+              <div className={`flex items-center justify-center w-12 h-12 rounded-full ${cMain.bgMain} text-white shadow-md ${cMain.shadowLight} ${cMain.bgHover}`}>
+                <Plus size={24} strokeWidth={3} />
+              </div>
+            </button>
+
+            <button onClick={() => setView('templates')} className={`p-2 rounded-full flex flex-col items-center justify-center w-16 transition-colors ${view === 'templates' ? cMain.text : 'text-stone-300 hover:bg-stone-50'}`}>
               <Copy size={24} className={view === 'templates' ? 'fill-current' : ''} />
               <span className="text-[10px] mt-1 font-bold">テンプレ</span>
             </button>
-            <button onClick={() => setView('settings')} className={`p-3 rounded-full flex flex-col items-center justify-center w-16 transition-colors ${view === 'settings' ? cMain.text : 'text-stone-300 hover:bg-stone-50'}`}>
+            
+            <button onClick={() => setView('settings')} className={`p-2 rounded-full flex flex-col items-center justify-center w-16 transition-colors ${view === 'settings' ? cMain.text : 'text-stone-300 hover:bg-stone-50'}`}>
               <Settings size={24} className={view === 'settings' ? 'fill-current' : ''} />
               <span className="text-[10px] mt-1 font-bold">設定</span>
             </button>
@@ -1126,7 +1141,7 @@
           {view === 'edit' && <TripEditor currentTrip={currentTrip} updateCurrentTrip={updateCurrentTrip} handleDelete={handleDelete} setView={setView} currentTheme={currentTheme} showAlert={showAlert} />}
           {view === 'view' && <TripViewer currentTrip={currentTrip} setView={setView} setCurrentTripId={setCurrentTripId} handleSaveAsTemplate={handleSaveAsTemplate} updateCurrentTrip={updateCurrentTrip} currentTheme={currentTheme} />}
           {view === 'settings' && <SettingsView trips={trips} setTrips={setTrips} currentThemeId={currentThemeId} setCurrentThemeId={setCurrentThemeId} currentTheme={currentTheme} showAlert={showAlert} />}
-          <TabBar view={view} setView={setView} currentTheme={currentTheme} />
+          <TabBar view={view} setView={setView} currentTheme={currentTheme} handleCreate={handleCreate} />
 
           {/* Custom Modal */}
           {modalConfig.isOpen && (
