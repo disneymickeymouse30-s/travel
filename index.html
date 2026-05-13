@@ -56,6 +56,19 @@
       -ms-overflow-style: none;
       scrollbar-width: none;
     }
+    /* ふわふわアニメーション */
+    @keyframes float {
+      0% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(3deg); }
+      100% { transform: translateY(0px) rotate(0deg); }
+    }
+    .animate-float {
+      animation: float 4s ease-in-out infinite;
+    }
+    .animate-float-delayed {
+      animation: float 4.5s ease-in-out infinite;
+      animation-delay: 1.5s;
+    }
     @media print {
       body { background-color: white; }
       .no-print { display: none !important; }
@@ -214,25 +227,25 @@
       </div>
     );
 
-    const Accordion = ({ title, icon: Icon, themeColorName = 'pink', defaultOpen = false, children, rightAction }) => {
+    const Accordion = ({ title, icon: Icon, themeColorName = 'pink', defaultOpen = false, children, rightAction, isPrintable = false, className = 'mb-4' }) => {
       const [isOpen, setIsOpen] = useState(defaultOpen);
       const c = colorClasses[themeColorName];
       return (
-        <div className={`bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.03)] mb-4 border ${c.borderLight} overflow-hidden no-print`}>
-          <div className="flex items-center justify-between p-5 cursor-pointer select-none hover:bg-stone-50/30 transition-colors" onClick={() => setIsOpen(!isOpen)}>
+        <div className={`bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.03)] border ${c.borderLight} overflow-hidden ${isPrintable ? 'print-card' : 'no-print'} ${className}`}>
+          <div className={`flex items-center justify-between p-5 cursor-pointer select-none hover:bg-stone-50/30 transition-colors ${isPrintable ? 'print:border-b print:border-stone-100' : ''}`} onClick={() => setIsOpen(!isOpen)}>
             <div className="flex items-center space-x-4">
               <div className={`p-2.5 ${c.bgLight} ${c.text} rounded-2xl`}>
                 <Icon size={22} />
               </div>
               <h3 className="font-bold text-stone-700 text-lg">{title}</h3>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className={`flex items-center space-x-2 ${isPrintable ? 'print:hidden' : ''}`}>
               {rightAction && <div onClick={(e) => e.stopPropagation()}>{rightAction}</div>}
               <ChevronDown size={22} className={`text-stone-300 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
             </div>
           </div>
-          <div className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
-            <div className={`p-5 pt-0 border-t ${c.borderLight}`}>
+          <div className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'} ${isPrintable ? 'print:max-h-none print:opacity-100' : ''}`}>
+            <div className={`p-5 pt-0 border-t ${c.borderLight} ${isPrintable ? 'print:border-none' : ''}`}>
               {children}
             </div>
           </div>
@@ -244,21 +257,49 @@
     const HomeView = ({ activeTrips, handleCreate, setCurrentTripId, setView, currentTheme }) => {
       const cMain = colorClasses[currentTheme.primary];
       return (
-        <div className="pb-24 pt-8 px-4 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="mb-12 pt-4 text-center">
-            <div className={`inline-flex items-center justify-center px-4 py-1.5 mb-4 ${cMain.bgLight} rounded-full shadow-sm border ${cMain.borderLight}`}>
-              <Sparkles size={16} className={`mr-1.5 ${cMain.text} animate-pulse`} />
-              <span className={`text-xs font-black tracking-widest uppercase ${cMain.text}`}>Journey</span>
+        <div className="pb-24 pt-4 px-4 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+          
+          {/* 可愛いヘッダーデザイン */}
+          <div className="mb-12 pt-8 pb-4 text-center relative">
+            {/* 背景のふわふわ装飾 */}
+            <div className={`absolute top-0 left-[10%] w-24 h-24 ${cMain.bgLight} rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse`}></div>
+            <div className={`absolute -top-4 right-[10%] w-32 h-32 ${colorClasses[currentTheme.sections.info].bgLight} rounded-full mix-blend-multiply filter blur-xl opacity-60 animate-pulse`} style={{ animationDelay: '1s' }}></div>
+            <div className={`absolute top-10 left-[40%] w-20 h-20 ${colorClasses[currentTheme.sections.memo].bgLight} rounded-full mix-blend-multiply filter blur-lg opacity-60 animate-pulse`} style={{ animationDelay: '2s' }}></div>
+            
+            <div className={`inline-flex items-center justify-center px-4 py-1.5 mb-6 ${cMain.bgLight} rounded-full shadow-[0_4px_15px_rgba(0,0,0,0.05)] border-2 border-white/90 backdrop-blur-sm relative z-10 transform hover:scale-105 transition-transform`}>
+              <Sparkles size={14} className={`mr-1.5 ${cMain.text} animate-pulse`} />
+              <span className={`text-[11px] font-black tracking-widest uppercase ${cMain.text}`}>Journey App</span>
             </div>
-            <div className="relative inline-block mb-3">
-              <h1 className={`text-4xl sm:text-5xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r ${cMain.gradient} pb-1 drop-shadow-md relative z-10 px-2`}>
-                旅のしおり
-              </h1>
-              <div className={`absolute bottom-1 left-0 w-full h-3 sm:h-4 ${cMain.bgMain} opacity-20 rounded-full -z-10 transform -rotate-1`}></div>
+            
+            <div className="relative inline-flex items-center justify-center mb-6 w-full z-10">
+              {/* 装飾用アイコン */}
+              <div className="absolute -top-5 left-[10%] sm:left-[20%] transform -rotate-12 animate-float opacity-90 z-20">
+                <span className="text-3xl drop-shadow-md">✨</span>
+              </div>
+              <div className="absolute -bottom-3 right-[10%] sm:right-[20%] transform rotate-12 animate-float-delayed opacity-90 z-20">
+                <span className="text-4xl drop-shadow-md">✈️</span>
+              </div>
+              
+              <div className="relative inline-block px-4">
+                {/* 縁取り用（後ろ） */}
+                <h1 
+                  className="text-[2.5rem] sm:text-5xl font-black tracking-widest text-white absolute left-0 top-0 w-full h-full z-0 drop-shadow-[0_4px_8px_rgba(0,0,0,0.12)] flex items-center justify-center pointer-events-none whitespace-nowrap" 
+                  style={{ WebkitTextStroke: '10px white' }}
+                >
+                  旅のしおり
+                </h1>
+                {/* メインカラー（前） */}
+                <h1 className={`text-[2.5rem] sm:text-5xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-br ${cMain.gradient} relative z-10 py-1 whitespace-nowrap`}>
+                  旅のしおり
+                </h1>
+              </div>
             </div>
-            <p className="text-stone-500 mt-3 font-bold text-sm flex items-center justify-center gap-1.5">
-              ワクワクする計画を立てよう <span className="text-base">🧳✨</span>
-            </p>
+            
+            <div className="relative z-10">
+              <p className="text-stone-500 font-bold text-sm flex items-center justify-center gap-1.5 bg-white/70 backdrop-blur-md inline-flex px-6 py-2.5 rounded-full shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-white/80">
+                ワクワクする計画を立てよう <span className="text-lg ml-1">🎈</span>
+              </p>
+            </div>
           </div>
 
           {activeTrips.length === 0 ? (
@@ -290,7 +331,7 @@
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-1">
                           {daysToTrip !== null && daysToTrip > 0 && daysToTrip <= 30 && (
-                            <span className="bg-orange-50 text-orange-500 text-xs font-bold px-2.5 py-1 rounded-lg border border-orange-100">あと {daysToTrip} 日</span>
+                            <span className={`bg-orange-50 text-orange-500 text-xs font-bold px-2.5 py-1 rounded-lg border border-orange-100`}>あと {daysToTrip} 日</span>
                           )}
                           {daysToTrip !== null && daysToTrip < 0 && (
                             <span className="bg-stone-100 text-stone-400 text-xs font-bold px-2.5 py-1 rounded-lg">終了</span>
@@ -315,11 +356,11 @@
       return (
         <div className="pb-24 pt-8 px-4 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
            <div className="mb-10 pl-2 pt-2 text-center">
-            <div className="inline-flex items-center justify-center px-3 py-1.5 mb-3 bg-white rounded-full shadow-sm border border-stone-100">
+            <div className={`inline-flex items-center justify-center px-4 py-1.5 mb-4 ${cMain.bgLight} rounded-full shadow-sm border border-white/80`}>
               <Copy size={14} className={`mr-1.5 ${cMain.text}`} />
-              <span className={`text-[10px] font-black tracking-widest uppercase ${cMain.text}`}>Templates</span>
+              <span className={`text-[11px] font-black tracking-widest uppercase ${cMain.text}`}>Templates</span>
             </div>
-            <h1 className="text-3xl font-black tracking-tight text-stone-700">テンプレート</h1>
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-stone-700 drop-shadow-sm">テンプレート</h1>
             <p className="text-stone-500 mt-2 font-bold text-sm">過去のプランを再利用しよう</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -507,110 +548,118 @@
                   </div>
                </div>
                
-               <div className="p-5 space-y-5">
+               <div className="p-4 sm:p-5 space-y-5">
                  <div className="flex justify-end mb-2">
                     <button className={`text-xs bg-gradient-to-r from-stone-50 to-white ${cSched.text} px-4 py-2 rounded-full font-bold flex items-center border ${cSched.borderLight} hover:shadow-sm transition-all active:scale-95`}>
                       <Wand2 size={14} className="mr-1.5" /> AIで自動生成 (Beta)
                     </button>
                  </div>
 
-                 {(currentTrip.schedules[activeDay] || []).map((item, index) => {
-                   const itemImages = item.images || (item.image ? [item.image] : []);
+                 <div id={`timeline-edit-${activeDay}`} className="relative pb-6 w-full max-w-full">
+                    <div className={`absolute top-2 bottom-0 left-[12px] w-1 ${cSched.bgLight} z-0 rounded-full`}></div>
 
-                   return (
-                     <div key={item.id} className="relative group bg-white rounded-3xl p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-stone-100 flex gap-4 overflow-hidden transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)]">
-                        <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${cSched.bgMedium}`}></div>
-                        
-                        <div className="flex flex-col items-center justify-center space-y-2 pt-1 z-10">
-                          <button onClick={() => moveSchedule(activeDay, index, 'up')} className={`text-stone-300 ${cSched.bgHover} p-1.5 bg-stone-50 rounded-full ${cSched.bgLight} transition-colors`}><ArrowUp size={16} /></button>
-                          <button onClick={() => moveSchedule(activeDay, index, 'down')} className={`text-stone-300 ${cSched.bgHover} p-1.5 bg-stone-50 rounded-full ${cSched.bgLight} transition-colors`}><ArrowDown size={16} /></button>
-                        </div>
-                        
-                        <div className="flex-1 space-y-4">
-                          <div className="flex flex-col sm:flex-row gap-3">
-                            <input type="time" className={`bg-stone-50 border border-stone-100 rounded-xl px-3 py-2.5 text-sm font-black outline-none ${cSched.text} w-28 flex-shrink-0 transition-all ${cSched.ring}`} value={item.time} onChange={(e) => {
-                              const newSchedules = [...currentTrip.schedules[activeDay]];
-                              newSchedules[index].time = e.target.value; updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
-                            }}/>
-                            <input type="text" placeholder="予定の内容 (例: 水族館へ)" className={`bg-stone-50 border border-stone-100 rounded-xl px-4 py-2.5 font-extrabold outline-none flex-1 text-stone-700 placeholder-stone-300 transition-all text-base ${cSched.ring}`} value={item.content} onChange={(e) => {
-                              const newSchedules = [...currentTrip.schedules[activeDay]];
-                              newSchedules[index].content = e.target.value; updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
-                            }}/>
-                          </div>
-                          
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div className={`flex items-center bg-stone-50 rounded-xl px-3 border border-stone-100 transition-all ${cSched.ring}`}>
-                              <MapPin size={16} className={`${cSched.text} mr-2 flex-shrink-0 opacity-70`} />
-                              <input type="text" placeholder="場所 (例: 美ら海水族館)" className="w-full bg-transparent outline-none py-2.5 text-sm text-stone-600 font-medium" value={item.location} onChange={(e) => {
-                                const newSchedules = [...currentTrip.schedules[activeDay]]; newSchedules[index].location = e.target.value; updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
-                              }}/>
-                            </div>
-                            <div className={`flex items-center bg-stone-50 rounded-xl px-3 border border-stone-100 transition-all ${cSched.ring}`}>
-                              <LinkIcon size={16} className={`${cSched.text} mr-2 flex-shrink-0 opacity-70`} />
-                              <input type="text" placeholder="Mapリンク" className={`w-full bg-transparent outline-none py-2.5 text-sm ${cSched.text} font-medium placeholder-stone-300`} value={item.mapLink} onChange={(e) => {
-                                const newSchedules = [...currentTrip.schedules[activeDay]]; newSchedules[index].mapLink = e.target.value; updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
-                              }}/>
-                            </div>
-                          </div>
+                    <div className="space-y-6 w-full max-w-full">
+                      {(currentTrip.schedules[activeDay] || []).map((item, index) => {
+                        const itemImages = item.images || (item.image ? [item.image] : []);
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div className={`flex items-center bg-stone-50 rounded-xl px-3 border border-stone-100 transition-all ${cSched.ring}`}>
-                              <Globe size={16} className={`${cSched.text} mr-2 flex-shrink-0 opacity-70`} />
-                              <input type="text" placeholder="情報用URL (https://...)" className={`w-full bg-transparent outline-none py-2.5 text-sm ${cSched.text} font-medium placeholder-stone-300`} value={item.infoLink || ''} onChange={(e) => {
-                                const newSchedules = [...currentTrip.schedules[activeDay]]; newSchedules[index].infoLink = e.target.value; updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
-                              }}/>
-                            </div>
-                            <div className={`flex items-center bg-stone-50 rounded-xl px-3 border border-stone-100 transition-all ${cSched.ring}`}>
-                              <Tag size={16} className={`${cSched.text} mr-2 flex-shrink-0 opacity-70`} />
-                              <input type="text" placeholder="URLの表示名 (例: 公式サイト)" className="w-full bg-transparent outline-none py-2.5 text-sm text-stone-600 font-medium placeholder-stone-300" value={item.infoLinkLabel || ''} onChange={(e) => {
-                                const newSchedules = [...currentTrip.schedules[activeDay]]; newSchedules[index].infoLinkLabel = e.target.value; updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
-                              }}/>
-                            </div>
-                          </div>
-                          
-                          <div className={`flex items-start bg-stone-50 rounded-xl px-3 border border-stone-100 transition-all ${cSched.ring}`}>
-                            <AlignLeft size={16} className={`${cSched.text} mr-2 mt-3.5 flex-shrink-0 opacity-70`} />
-                            <textarea placeholder="メモ (チケット番号など)" className="w-full bg-transparent outline-none py-3 text-sm text-stone-600 font-medium resize-none h-16 leading-relaxed" value={item.memo} onChange={(e) => {
-                              const newSchedules = [...currentTrip.schedules[activeDay]]; newSchedules[index].memo = e.target.value; updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
-                            }}/>
-                          </div>
-
-                          <div className="flex items-start mt-2">
-                            <div className="w-full flex flex-wrap gap-3">
-                              {itemImages.map((img, imgIndex) => (
-                                <div key={imgIndex} className="relative inline-block mt-1 group/img">
-                                  <img src={img} alt="添付画像" className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl object-contain border border-stone-100 bg-white shadow-sm" />
-                                  <button onClick={() => {
-                                      const newSchedules = [...currentTrip.schedules[activeDay]];
-                                      newSchedules[index].images = itemImages.filter((_, i) => i !== imgIndex); updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
-                                    }} className="absolute -top-2 -right-2 bg-stone-800/60 backdrop-blur text-white rounded-full p-1.5 shadow-md hover:bg-rose-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover/img:opacity-100"><X size={12} /></button>
+                        return (
+                          <div key={item.id} className="relative z-10 pl-[32px] w-full max-w-full">
+                              <div id={`dot-edit-${item.id}`} className={`absolute w-[14px] h-[14px] bg-white border-[3px] ${cSched.borderMain} rounded-full left-[7px] top-[30px] shadow-sm z-10`}></div>
+                              
+                              <div className="w-full bg-white rounded-3xl p-4 sm:p-5 shadow-[0_4px_20px_rgb(0,0,0,0.03)] border border-stone-100 relative overflow-hidden group hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all">
+                                <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${cSched.bgMedium}`}></div>
+                                
+                                <div className="w-full flex justify-between items-center mb-3 gap-2">
+                                  <input type="time" className={`bg-stone-50 border border-stone-100 rounded-xl px-2 py-2 text-sm font-black outline-none ${cSched.text} w-24 flex-shrink-0 transition-all ${cSched.ring}`} value={item.time} onChange={(e) => {
+                                    const newSchedules = [...currentTrip.schedules[activeDay]];
+                                    newSchedules[index].time = e.target.value; updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
+                                  }}/>
+                                  <div className="flex items-center gap-1 sm:gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={() => moveSchedule(activeDay, index, 'up')} className={`text-stone-400 hover:text-sky-500 p-1.5 bg-stone-50 rounded-full hover:bg-sky-50 transition-colors`}><ArrowUp size={16} /></button>
+                                    <button onClick={() => moveSchedule(activeDay, index, 'down')} className={`text-stone-400 hover:text-sky-500 p-1.5 bg-stone-50 rounded-full hover:bg-sky-50 transition-colors`}><ArrowDown size={16} /></button>
+                                    <button onClick={() => {
+                                        const newSchedules = currentTrip.schedules[activeDay].filter((_, i) => i !== index); updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
+                                    }} className="text-stone-400 hover:text-rose-500 p-1.5 bg-stone-50 rounded-full hover:bg-rose-50 transition-colors"><Trash2 size={16} /></button>
+                                  </div>
                                 </div>
-                              ))}
-                              {itemImages.length < 3 && (
-                                <label className={`cursor-pointer inline-flex items-center justify-center bg-stone-50 border-2 border-dashed ${cSched.borderLight} rounded-2xl text-xs font-bold ${cSched.text} opacity-70 hover:opacity-100 ${cSched.bgLight} transition-all mt-1 h-20 w-20 sm:h-24 sm:w-24 flex-col`}>
-                                  <ImageIcon size={24} className="mb-2" />
-                                  <span>写真追加</span>
-                                  <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
-                                      const file = e.target.files[0];
-                                      if (file) {
-                                        try {
-                                          const base64Img = await compressImage(file);
-                                          const newSchedules = [...currentTrip.schedules[activeDay]];
-                                          newSchedules[index].images = [...itemImages, base64Img]; updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
-                                        } catch (err) { showAlert('画像の読み込みに失敗しました'); }
-                                      }
-                                    }} />
-                                </label>
-                              )}
-                            </div>
+                                
+                                <input type="text" placeholder="予定の内容 (例: 水族館へ)" className={`w-full bg-stone-50 border border-stone-100 rounded-xl px-4 py-2.5 font-extrabold outline-none text-stone-700 placeholder-stone-300 transition-all text-base ${cSched.ring} mb-3`} value={item.content} onChange={(e) => {
+                                  const newSchedules = [...currentTrip.schedules[activeDay]];
+                                  newSchedules[index].content = e.target.value; updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
+                                }}/>
+                                
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                                  <div className={`flex items-center bg-stone-50 rounded-xl px-3 border border-stone-100 transition-all ${cSched.ring}`}>
+                                    <MapPin size={16} className={`${cSched.text} mr-2 flex-shrink-0 opacity-70`} />
+                                    <input type="text" placeholder="場所 (例: 美ら海水族館)" className="w-full bg-transparent outline-none py-2.5 text-sm text-stone-600 font-medium" value={item.location} onChange={(e) => {
+                                      const newSchedules = [...currentTrip.schedules[activeDay]]; newSchedules[index].location = e.target.value; updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
+                                    }}/>
+                                  </div>
+                                  <div className={`flex items-center bg-stone-50 rounded-xl px-3 border border-stone-100 transition-all ${cSched.ring}`}>
+                                    <LinkIcon size={16} className={`${cSched.text} mr-2 flex-shrink-0 opacity-70`} />
+                                    <input type="text" placeholder="Mapリンク" className={`w-full bg-transparent outline-none py-2.5 text-sm ${cSched.text} font-medium placeholder-stone-300`} value={item.mapLink} onChange={(e) => {
+                                      const newSchedules = [...currentTrip.schedules[activeDay]]; newSchedules[index].mapLink = e.target.value; updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
+                                    }}/>
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                                  <div className={`flex items-center bg-stone-50 rounded-xl px-3 border border-stone-100 transition-all ${cSched.ring}`}>
+                                    <Globe size={16} className={`${cSched.text} mr-2 flex-shrink-0 opacity-70`} />
+                                    <input type="text" placeholder="情報用URL (https://...)" className={`w-full bg-transparent outline-none py-2.5 text-sm ${cSched.text} font-medium placeholder-stone-300`} value={item.infoLink || ''} onChange={(e) => {
+                                      const newSchedules = [...currentTrip.schedules[activeDay]]; newSchedules[index].infoLink = e.target.value; updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
+                                    }}/>
+                                  </div>
+                                  <div className={`flex items-center bg-stone-50 rounded-xl px-3 border border-stone-100 transition-all ${cSched.ring}`}>
+                                    <Tag size={16} className={`${cSched.text} mr-2 flex-shrink-0 opacity-70`} />
+                                    <input type="text" placeholder="URLの表示名 (例: 公式サイト)" className="w-full bg-transparent outline-none py-2.5 text-sm text-stone-600 font-medium placeholder-stone-300" value={item.infoLinkLabel || ''} onChange={(e) => {
+                                      const newSchedules = [...currentTrip.schedules[activeDay]]; newSchedules[index].infoLinkLabel = e.target.value; updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
+                                    }}/>
+                                  </div>
+                                </div>
+                                
+                                <div className={`flex items-start bg-stone-50 rounded-xl px-3 border border-stone-100 transition-all ${cSched.ring}`}>
+                                  <AlignLeft size={16} className={`${cSched.text} mr-2 mt-3.5 flex-shrink-0 opacity-70`} />
+                                  <textarea placeholder="メモ (チケット番号など)" className="w-full bg-transparent outline-none py-3 text-sm text-stone-600 font-medium resize-none h-16 leading-relaxed" value={item.memo} onChange={(e) => {
+                                    const newSchedules = [...currentTrip.schedules[activeDay]]; newSchedules[index].memo = e.target.value; updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
+                                  }}/>
+                                </div>
+
+                                <div className="flex items-start mt-3">
+                                  <div className="w-full flex flex-wrap gap-3">
+                                    {itemImages.map((img, imgIndex) => (
+                                      <div key={imgIndex} className="relative inline-block mt-1 group/img">
+                                        <img src={img} alt="添付画像" className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl object-contain border border-stone-100 bg-white shadow-sm" />
+                                        <button onClick={() => {
+                                            const newSchedules = [...currentTrip.schedules[activeDay]];
+                                            newSchedules[index].images = itemImages.filter((_, i) => i !== imgIndex); updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
+                                          }} className="absolute -top-2 -right-2 bg-stone-800/60 backdrop-blur text-white rounded-full p-1.5 shadow-md hover:bg-rose-400 transition-colors opacity-100 sm:opacity-0 sm:group-hover/img:opacity-100"><X size={12} /></button>
+                                      </div>
+                                    ))}
+                                    {itemImages.length < 3 && (
+                                      <label className={`cursor-pointer inline-flex items-center justify-center bg-stone-50 border-2 border-dashed ${cSched.borderLight} rounded-2xl text-xs font-bold ${cSched.text} opacity-70 hover:opacity-100 ${cSched.bgLight} transition-all mt-1 h-20 w-20 sm:h-24 sm:w-24 flex-col`}>
+                                        <ImageIcon size={24} className="mb-2" />
+                                        <span>写真追加</span>
+                                        <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                                            const file = e.target.files[0];
+                                            if (file) {
+                                              try {
+                                                const base64Img = await compressImage(file);
+                                                const newSchedules = [...currentTrip.schedules[activeDay]];
+                                                newSchedules[index].images = [...itemImages, base64Img]; updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
+                                              } catch (err) { showAlert('画像の読み込みに失敗しました'); }
+                                            }
+                                          }} />
+                                      </label>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
                           </div>
-                        </div>
-                        <button className="absolute top-4 right-4 bg-white border border-stone-100 text-stone-300 rounded-full p-2 shadow-sm hover:text-rose-400 hover:border-rose-100 hover:bg-rose-50 transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100" onClick={() => {
-                             const newSchedules = currentTrip.schedules[activeDay].filter((_, i) => i !== index); updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
-                          }}><Trash2 size={16} /></button>
-                     </div>
-                   );
-                 })}
+                        );
+                      })}
+                    </div>
+                 </div>
 
                  <button onClick={() => handleAddSchedule(activeDay)} className={`w-full py-5 border-[3px] border-dashed ${cSched.borderLight} ${cSched.text} rounded-3xl flex items-center justify-center ${cSched.bgLight} transition-all font-bold text-base mt-2`}>
                    <Plus size={22} className="mr-2" /> 新しい予定を追加
@@ -817,63 +866,62 @@
                         </div>
                         
                         <div id={`timeline-${dayStr}`} className="relative pb-6 w-full max-w-full overflow-hidden">
-                          <div className={`absolute top-2 bottom-0 left-[27px] sm:left-[27px] w-1 ${cSched.bgLight} z-0 rounded-full`}></div>
+                          <div className={`absolute top-2 bottom-0 left-[12px] w-1 ${cSched.bgLight} z-0 rounded-full`}></div>
 
                           {isToday && dogPositions[dayStr] !== undefined && (
-                            <div className="absolute z-20 no-print flex items-center justify-center pointer-events-none transition-all duration-1000 ease-linear" style={{ top: `${dogPositions[dayStr]}px`, left: '11px', transform: 'translateY(-50%)' }}>
-                              <div className={`bg-white rounded-full shadow-lg border-2 ${cSched.borderLight} text-xl w-9 h-9 flex items-center justify-center filter drop-shadow-md`}>🐕</div>
+                            <div className="absolute z-20 no-print flex items-center justify-center pointer-events-none transition-all duration-1000 ease-linear" style={{ top: `${dogPositions[dayStr]}px`, left: '-2px', transform: 'translateY(-50%)' }}>
+                              <div className={`bg-white rounded-full shadow-md border-2 ${cSched.borderLight} text-lg w-8 h-8 flex items-center justify-center filter drop-shadow-md`}>🐕</div>
                             </div>
                           )}
 
-                          <div className="space-y-8 w-full max-w-full">
+                          <div className="space-y-6 w-full max-w-full">
                             {schedules.map((item) => {
                               const itemImages = item.images || (item.image ? [item.image] : []);
                               return (
-                                <div key={item.id} className="relative z-10 pl-[56px] sm:pl-[72px] w-full max-w-full pr-1">
-                                  <div id={`dot-${item.id}`} className={`absolute w-[18px] h-[18px] bg-white border-[4px] ${cSched.borderMain} rounded-full left-[19px] sm:left-[19px] top-[14px] shadow-sm z-10`}></div>
+                                <div key={item.id} className="relative z-10 pl-[32px] w-full max-w-full pr-1">
+                                  <div id={`dot-${item.id}`} className={`absolute w-[14px] h-[14px] bg-white border-[3px] ${cSched.borderMain} rounded-full left-[7px] top-[26px] shadow-sm z-10`}></div>
                                   
-                                  <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-5 w-full max-w-full">
-                                    <div className="flex flex-col items-start w-16 flex-shrink-0 pt-1">
-                                      <span className={`${cSched.text} font-black text-lg tracking-tighter`}>{item.time || '--:--'}</span>
+                                  <div className="w-full bg-white print:bg-transparent rounded-3xl p-4 sm:p-5 shadow-[0_8px_30px_rgb(0,0,0,0.03)] print:shadow-none border border-stone-100 print:border-none print:p-0 relative overflow-hidden group">
+                                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${cSched.bgLight}`}></div>
+                                    
+                                    <div className="flex flex-row items-center gap-3 mb-3 w-full">
+                                      <span className={`inline-block ${cSched.bgLight} ${cSched.text} px-3 py-1 rounded-xl font-black text-lg tracking-tighter shrink-0`}>{item.time || '--:--'}</span>
+                                      <h4 className="text-xl font-extrabold text-stone-700 tracking-tight leading-snug break-words w-full">{item.content || '予定なし'}</h4>
                                     </div>
-                                    <div className="flex-1 w-[calc(100%-1rem)] bg-white print:bg-transparent rounded-3xl p-4 sm:p-5 shadow-[0_8px_30px_rgb(0,0,0,0.03)] print:shadow-none border border-stone-100 print:border-none print:p-0 relative overflow-hidden group">
-                                      <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${cSched.bgLight}`}></div>
-                                      <h4 className="text-xl font-extrabold text-stone-700 mb-3 tracking-tight leading-snug break-words">{item.content || '予定なし'}</h4>
-                                      
-                                      <div className="flex flex-wrap gap-2 mb-2 w-full">
-                                        {item.location && (
-                                          <span className={`inline-flex items-center px-3 py-1.5 bg-stone-50 text-stone-600 rounded-xl text-sm font-bold border border-stone-100 break-words max-w-full`}>
-                                            <MapPin size={14} className={`mr-1.5 ${cSched.text} flex-shrink-0`} /> <span className="truncate">{item.location}</span>
-                                          </span>
-                                        )}
-                                        {item.mapLink && (
-                                          <a href={item.mapLink} target="_blank" rel="noreferrer" className={`inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-500 rounded-xl text-sm font-bold hover:bg-blue-100 transition-colors border border-blue-100 no-print flex-shrink-0`}>
-                                            <LinkIcon size={14} className="mr-1.5 text-blue-400" /> Map
-                                          </a>
-                                        )}
-                                        {item.infoLink && (
-                                          <a href={item.infoLink} target="_blank" rel="noreferrer" className={`inline-flex items-center px-3 py-1.5 ${cSched.bgLight} ${cSched.text} rounded-xl text-sm font-bold ${cSched.bgHover} hover:text-white transition-colors border ${cSched.borderLight} no-print max-w-full break-words`}>
-                                            <Globe size={14} className="mr-1.5 flex-shrink-0" />
-                                            <span className="truncate">{item.infoLinkLabel || '参考リンク'}</span>
-                                          </a>
-                                        )}
+                                    
+                                    <div className="flex flex-wrap gap-2 mb-2 w-full">
+                                      {item.location && (
+                                        <span className={`inline-flex items-center px-3 py-1.5 bg-stone-50 text-stone-600 rounded-xl text-sm font-bold border border-stone-100 break-words max-w-full`}>
+                                          <MapPin size={14} className={`mr-1.5 ${cSched.text} flex-shrink-0`} /> <span className="truncate">{item.location}</span>
+                                        </span>
+                                      )}
+                                      {item.mapLink && (
+                                        <a href={item.mapLink} target="_blank" rel="noreferrer" className={`inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-500 rounded-xl text-sm font-bold hover:bg-blue-100 transition-colors border border-blue-100 no-print flex-shrink-0`}>
+                                          <LinkIcon size={14} className="mr-1.5 text-blue-400" /> Map
+                                        </a>
+                                      )}
+                                      {item.infoLink && (
+                                        <a href={item.infoLink} target="_blank" rel="noreferrer" className={`inline-flex items-center px-3 py-1.5 ${cSched.bgLight} ${cSched.text} rounded-xl text-sm font-bold ${cSched.bgHover} hover:text-white transition-colors border ${cSched.borderLight} no-print max-w-full break-words`}>
+                                          <Globe size={14} className="mr-1.5 flex-shrink-0" />
+                                          <span className="truncate">{item.infoLinkLabel || '参考リンク'}</span>
+                                        </a>
+                                      )}
+                                    </div>
+                                    
+                                    {item.memo && (
+                                      <div className="mt-4 relative pl-4 py-1 text-sm text-stone-500 whitespace-pre-wrap leading-relaxed font-medium break-words w-full">
+                                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${cSched.bgMedium} rounded-full`}></div>
+                                        {item.memo}
                                       </div>
-                                      
-                                      {item.memo && (
-                                        <div className="mt-4 relative pl-4 py-1 text-sm text-stone-500 whitespace-pre-wrap leading-relaxed font-medium break-words w-full">
-                                          <div className={`absolute left-0 top-0 bottom-0 w-1 ${cSched.bgMedium} rounded-full`}></div>
-                                          {item.memo}
-                                        </div>
-                                      )}
-                                      
-                                      {itemImages.length > 0 && (
-                                        <div className="mt-5 flex gap-3 overflow-x-auto hide-scrollbar pb-2 no-print w-full max-w-full">
-                                          {itemImages.map((img, imgIndex) => (
-                                            <img key={imgIndex} src={img} alt="添付画像" onClick={() => setViewerData({ isOpen: true, images: itemImages, currentIndex: imgIndex })} className="h-32 w-auto max-w-[75vw] sm:max-w-[80vw] rounded-2xl object-contain border border-stone-100 flex-shrink-0 cursor-pointer active:opacity-70 transition-opacity bg-stone-50" />
-                                          ))}
-                                        </div>
-                                      )}
-                                    </div>
+                                    )}
+                                    
+                                    {itemImages.length > 0 && (
+                                      <div className="mt-5 flex gap-3 overflow-x-auto hide-scrollbar pb-2 no-print w-full max-w-full">
+                                        {itemImages.map((img, imgIndex) => (
+                                          <img key={imgIndex} src={img} alt="添付画像" onClick={() => setViewerData({ isOpen: true, images: itemImages, currentIndex: imgIndex })} className="h-32 w-auto max-w-[75vw] sm:max-w-[80vw] rounded-2xl object-contain border border-stone-100 flex-shrink-0 cursor-pointer active:opacity-70 transition-opacity bg-stone-50" />
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               );
@@ -886,12 +934,9 @@
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 page-break">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8 page-break">
                 {currentTrip.items.length > 0 && (
-                  <div className="print-card p-7 bg-white rounded-3xl border border-stone-100 shadow-[0_8px_30px_rgb(0,0,0,0.03)]">
-                    <h2 className="text-xl font-black text-stone-700 border-b-2 border-stone-50 pb-4 mb-5 flex items-center">
-                      <Briefcase className={`mr-2.5 ${cItem.text}`} /> 持ち物リスト
-                    </h2>
+                  <Accordion title="持ち物リスト" icon={Briefcase} themeColorName={currentTheme.sections.items} defaultOpen={true} isPrintable={true} className="mb-0 h-fit">
                     <ul className="space-y-3.5">
                       {currentTrip.items.map((item, index) => (
                         <li key={item.id} className="flex items-center text-stone-700 font-bold group cursor-pointer" onClick={() => {
@@ -904,14 +949,11 @@
                         </li>
                       ))}
                     </ul>
-                  </div>
+                  </Accordion>
                 )}
 
                 {currentTrip.budgets.length > 0 && (
-                  <div className="print-card p-7 bg-white rounded-3xl border border-stone-100 shadow-[0_8px_30px_rgb(0,0,0,0.03)]">
-                    <h2 className="text-xl font-black text-stone-700 border-b-2 border-stone-50 pb-4 mb-5 flex items-center">
-                      <DollarSign className={`mr-2.5 ${cBudget.text}`} /> 予算・費用
-                    </h2>
+                  <Accordion title="予算・費用" icon={DollarSign} themeColorName={currentTheme.sections.budget} defaultOpen={true} isPrintable={true} className="mb-0 h-fit">
                     <div className="space-y-4 mb-5">
                       {currentTrip.budgets.map(budget => (
                         <div key={budget.id} className="flex justify-between items-center text-stone-600 font-bold border-b border-stone-50 pb-3">
@@ -923,7 +965,7 @@
                     <div className={`flex justify-between items-center pt-2 text-lg font-black ${cBudget.text} ${cBudget.bgLight} p-4 rounded-2xl border ${cBudget.borderLight}`}>
                       <span>合計</span><span>¥{totalBudget.toLocaleString()}</span>
                     </div>
-                  </div>
+                  </Accordion>
                 )}
               </div>
             </div>
@@ -984,7 +1026,7 @@
               <Download size={20} className={`mr-2 ${cMain.text}`}/> データ管理 (JSON)
             </div>
             <div className="p-6 space-y-4">
-              <p className="text-sm text-stone-500 leading-relaxed font-medium">しおりのデータをエクスポート・インポートできます</p>
+              <p className="text-sm text-stone-500 leading-relaxed font-medium">しおりのデータをJSON形式でエクスポート・インポートできます。</p>
               <div className="flex gap-4 pt-2">
                 <button onClick={() => {
                     const jsonStr = JSON.stringify(trips);
