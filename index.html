@@ -15,6 +15,9 @@
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   
+  <!-- LocalForage (大容量ストレージ IndexedDB 用) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+
   <!-- Import Map for ES Modules -->
   <script type="importmap">
     {
@@ -104,6 +107,12 @@
       CheckCircle2, Circle, Sun, Cloud, ChevronLeft, X, Camera, Palette,
       Globe, Tag, Sparkles
     } from 'lucide-react';
+
+    // LocalForage Config
+    localforage.config({
+      name: 'JourneyApp',
+      storeName: 'journey_data'
+    });
 
     // --- Configs & Themes ---
     const colorClasses = {
@@ -447,7 +456,7 @@
               <div className={`${cMain.bgLight} w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-white shadow-sm`}>
                 <MapPin size={32} className={cMain.text} />
               </div>
-              <h3 className="text-lg font-black text-stone-700">予定がありません</h3>
+              <h3 className="text-lg font-bold text-stone-700">予定がありません</h3>
               <p className="text-stone-400 mt-2 mb-6 font-medium">新しい旅の計画を始めましょう</p>
               <button onClick={() => handleCreate()} className={`${cMain.bgMain} ${cMain.bgHover} text-white px-7 py-3.5 rounded-2xl font-bold active:scale-95 transition-all shadow-md ${cMain.shadow} border-2 border-white`}>
                 新規作成
@@ -660,7 +669,7 @@
                       <input type="date" className={`w-full bg-white/70 backdrop-blur-sm rounded-2xl p-3 outline-none text-stone-700 font-bold border-2 border-white transition-all ${cInfo.ring} shadow-sm`} value={currentTrip.startDate} onChange={e => updateCurrentTrip({ startDate: e.target.value })} />
                     </div>
                     <div>
-                      <label className="text-xs font-black text-stone-400 uppercase tracking-wider mb-1.5 block ml-1">帰宅日</label>
+                      <label className="text-xs font-black text-stone-400 uppercase tracking-widest mb-1.5 block ml-1">帰宅日</label>
                       <input type="date" className={`w-full bg-white/70 backdrop-blur-sm rounded-2xl p-3 outline-none text-stone-700 font-bold border-2 border-white transition-all ${cInfo.ring} shadow-sm`} value={currentTrip.endDate} onChange={e => updateCurrentTrip({ endDate: e.target.value })} />
                     </div>
                   </div>
@@ -707,7 +716,7 @@
                    </div>
 
                    <div id={`timeline-edit-${activeDay}`} className="relative pb-6 w-full max-w-full">
-                      <div className={`absolute top-2 bottom-0 left-[16px] w-2 ${cSched.bgLight} z-0 rounded-full border border-white`}></div>
+                      <div className={`absolute top-2 bottom-0 left-[20px] sm:left-[24px] w-2 ${cSched.bgLight} z-0 rounded-full border border-white`}></div>
 
                       <div className="space-y-6 w-full max-w-full mt-2">
                         {(currentTrip.schedules[activeDay] || []).map((item, index) => {
@@ -715,7 +724,7 @@
 
                           return (
                             <div key={item.id} id={`card-edit-${item.id}`} className="relative z-10 pl-[38px] sm:pl-[46px] w-full max-w-full pr-1 pt-6 mb-4">
-                                <div id={`dot-edit-${item.id}`} className={`absolute w-[18px] h-[18px] bg-white border-[4px] ${cSched.borderMain} rounded-full left-[9px] top-[40px] shadow-sm z-10`}></div>
+                                <div id={`dot-edit-${item.id}`} className={`absolute w-[18px] h-[18px] bg-white border-[4px] ${cSched.borderMain} rounded-full left-[9px] sm:left-[13px] top-[40px] shadow-sm z-10`}></div>
                                 
                                 <div className="relative w-full">
                                   {/* 時刻バッジ */}
@@ -835,7 +844,7 @@
               {/* Items & Budget */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Accordion title="持ち物リスト" icon={Briefcase} themeColorName={currentTheme.sections.items} rightAction={
-                    <button onClick={() => updateItems([...currentTrip.items, { id: generateId(), name: '', checked: false }])} className={`${cItem.text} p-1.5 ${cItem.bgLight} rounded-lg ${cItem.bgHover} hover:text-white transition-colors border border-white shadow-sm`}><Plus size={18} /></button>
+                    <button onClick={() => updateItems([...currentTrip.items, { id: generateId(), name: '', checked: false }])} className={`${cItem.text} p-1.5 ${cItem.bgLight} rounded-full ${cItem.bgHover} hover:text-white transition-colors border border-white shadow-sm`}><Plus size={18} /></button>
                   }>
                   <div className="space-y-3">
                     {currentTrip.items.map((item, index) => (
@@ -856,7 +865,7 @@
                 </Accordion>
 
                 <Accordion title="予算" icon={DollarSign} themeColorName={currentTheme.sections.budget} rightAction={
-                    <button onClick={() => updateBudgets([...currentTrip.budgets, { id: generateId(), name: '', amount: '' }])} className={`${cBudget.text} p-1.5 ${cBudget.bgLight} rounded-lg ${cBudget.bgHover} hover:text-white transition-colors border border-white shadow-sm`}><Plus size={18} /></button>
+                    <button onClick={() => updateBudgets([...currentTrip.budgets, { id: generateId(), name: '', amount: '' }])} className={`${cBudget.text} p-1.5 ${cBudget.bgLight} rounded-full ${cBudget.bgHover} hover:text-white transition-colors border border-white shadow-sm`}><Plus size={18} /></button>
                   }>
                   <div className="space-y-3 mb-5">
                     {currentTrip.budgets.map((budget, index) => (
@@ -1088,19 +1097,19 @@
                                       
                                       <div className="flex flex-wrap gap-2 mb-2 w-full">
                                         {item.location && (
-                                          <span className={`inline-flex items-center px-3 py-1.5 bg-stone-50 text-stone-600 rounded-xl text-sm font-bold border border-stone-100 break-words max-w-full`}>
+                                          <span className={`inline-flex items-center px-3 py-1.5 bg-white/80 rounded-full text-sm font-bold border border-white shadow-sm break-words max-w-full`}>
                                             <MapPin size={14} className={`mr-1.5 ${cSched.text} flex-shrink-0`} /> <span className="truncate text-stone-600">{item.location}</span>
                                           </span>
                                         )}
                                         {item.mapLink && (
-                                          <a href={item.mapLink} target="_blank" rel="noreferrer" className={`inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-500 rounded-xl text-sm font-bold hover:bg-blue-100 transition-colors border border-blue-100 no-print flex-shrink-0`}>
+                                          <a href={item.mapLink} target="_blank" rel="noreferrer" className={`inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-500 rounded-xl text-sm font-bold hover:bg-blue-50 transition-colors border border-white shadow-sm no-print flex-shrink-0`}>
                                             <LinkIcon size={14} className="mr-1.5 text-blue-400" /> Map
                                           </a>
                                         )}
                                         {item.infoLink && (
-                                          <a href={item.infoLink} target="_blank" rel="noreferrer" className={`inline-flex items-center px-3 py-1.5 ${cSched.bgLight} ${cSched.text} rounded-xl text-sm font-bold ${cSched.bgHover} hover:text-white transition-colors border ${cSched.borderLight} no-print max-w-full break-words`}>
-                                            <Globe size={14} className="mr-1.5 flex-shrink-0" />
-                                            <span className="truncate">{item.infoLinkLabel || '参考リンク'}</span>
+                                          <a href={item.infoLink} target="_blank" rel="noreferrer" className={`inline-flex items-center px-3 py-1.5 ${cSched.bgLight} rounded-full text-sm font-bold ${cSched.bgHover} hover:text-white transition-colors border border-white shadow-sm no-print max-w-full break-words`}>
+                                            <Globe size={14} className={`mr-1.5 flex-shrink-0 ${cSched.text} group-hover:text-white transition-colors`} />
+                                            <span className={`truncate ${cSched.text} group-hover:text-white transition-colors`}>{item.infoLinkLabel || '参考リンク'}</span>
                                           </a>
                                         )}
                                       </div>
@@ -1308,25 +1317,55 @@
       }, []);
 
       useEffect(() => {
-        const savedTrips = localStorage.getItem('journey_trips');
-        if (savedTrips) setTrips(JSON.parse(savedTrips));
-        else setTrips([initialTemplate]);
-        
-        const savedTheme = localStorage.getItem('journey_theme');
-        if (savedTheme && THEMES[savedTheme]) setCurrentThemeId(savedTheme);
-        
-        setIsLoaded(true);
+        const loadData = async () => {
+          try {
+            // LocalForageからデータを取得
+            let savedTrips = await localforage.getItem('journey_trips');
+            let savedTheme = await localforage.getItem('journey_theme');
+
+            // 過去のlocalStorageのデータがある場合はマイグレーション（引き継ぎ）する
+            if (!savedTrips) {
+                const oldTrips = localStorage.getItem('journey_trips');
+                if (oldTrips) {
+                    savedTrips = JSON.parse(oldTrips);
+                    await localforage.setItem('journey_trips', savedTrips);
+                }
+            }
+            if (!savedTheme) {
+                const oldTheme = localStorage.getItem('journey_theme');
+                if (oldTheme) {
+                    savedTheme = oldTheme;
+                    await localforage.setItem('journey_theme', savedTheme);
+                }
+            }
+
+            if (savedTrips) setTrips(savedTrips);
+            else setTrips([initialTemplate]);
+            
+            if (savedTheme && THEMES[savedTheme]) setCurrentThemeId(savedTheme);
+            
+            setIsLoaded(true);
+          } catch (e) {
+            console.error("データの読み込みに失敗しました", e);
+            setTrips([initialTemplate]);
+            setIsLoaded(true);
+          }
+        };
+        loadData();
       }, []);
 
       useEffect(() => {
         if (isLoaded) {
-          try {
-            localStorage.setItem('journey_trips', JSON.stringify(trips));
-            localStorage.setItem('journey_theme', currentThemeId);
-          } catch (e) {
-            console.error(e); 
-            showAlert('保存容量の上限に達しました。不要な画像を削除してください。');
-          }
+          const saveData = async () => {
+            try {
+              await localforage.setItem('journey_trips', trips);
+              await localforage.setItem('journey_theme', currentThemeId);
+            } catch (e) {
+              console.error(e); 
+              showAlert('保存容量の上限に達しました。不要な画像を削除してください。');
+            }
+          };
+          saveData();
         }
       }, [trips, currentThemeId, isLoaded, showAlert]);
 
@@ -1370,6 +1409,8 @@
           }
         });
       };
+
+      if (!isLoaded) return <div className="min-h-screen flex items-center justify-center text-stone-400">Loading...</div>;
 
       return (
         <div className={`min-h-screen relative selection:bg-stone-200 transition-colors duration-500 bg-gradient-to-br ${currentTheme.bgGradient} bg-cute-pattern`}>          
