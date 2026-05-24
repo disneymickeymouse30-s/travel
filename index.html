@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -171,14 +172,28 @@
 
     // --- Utils ---
     const generateId = () => Math.random().toString(36).substr(2, 9);
-    const formatDate = (dateString) => {
-      if (!dateString) return '';
+    const formatDate = (dateStringOrDate) => {
+      if (!dateStringOrDate) return '';
       const options = { year: 'numeric', month: 'short', day: 'numeric', weekday: 'short' };
-      return new Date(dateString).toLocaleDateString('ja-JP', options);
+      // Date オブジェクトの場合はそのまま
+      if (dateStringOrDate instanceof Date) {
+        return dateStringOrDate.toLocaleDateString('ja-JP', options);
+      }
+      // YYYY-MM-DD 形式の文字列はUTC基準で解釈されるためローカルタイムとして扱う
+      const parts = String(dateStringOrDate).split('-').map(Number);
+      if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
+        return new Date(parts[0], parts[1] - 1, parts[2]).toLocaleDateString('ja-JP', options);
+      }
+      return new Date(dateStringOrDate).toLocaleDateString('ja-JP', options);
     };
     const calculateDays = (start, end) => {
       if (!start || !end) return 0;
-      const diffTime = Math.abs(new Date(end) - new Date(start));
+      const [sy, sm, sd] = start.split('-').map(Number);
+      const [ey, em, ed] = end.split('-').map(Number);
+      const startDate = new Date(sy, sm - 1, sd);
+      const endDate = new Date(ey, em - 1, ed);
+      const diffTime = endDate - startDate;
+      if (diffTime < 0) return 0;
       return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
     };
     const timeToMinutes = (timeStr) => {
@@ -287,9 +302,12 @@
           touchState.current.startDistance = getDistance(e.touches);
           touchState.current.startScale = scale;
         } else if (e.touches.length === 1) {
-          touchState.current.startX = e.touches[0].clientX - position.x;
-          touchState.current.startY = e.touches[0].clientY - position.y;
+          touchState.current.startX = e.touches[0].clientX;
+          touchState.current.startY = e.touches[0].clientY;
           touchState.current.lastX = e.touches[0].clientX;
+          // パン用のオフセット計算（拡大時のドラッグ）
+          touchState.current.panStartX = e.touches[0].clientX - position.x;
+          touchState.current.panStartY = e.touches[0].clientY - position.y;
         }
       };
 
@@ -303,8 +321,8 @@
         } else if (e.touches.length === 1 && !touchState.current.isPinching) {
           if (scale > 1) {
             // 拡大中のパン（移動）
-            const newX = e.touches[0].clientX - touchState.current.startX;
-            const newY = e.touches[0].clientY - touchState.current.startY;
+            const newX = e.touches[0].clientX - touchState.current.panStartX;
+            const newY = e.touches[0].clientY - touchState.current.panStartY;
             setPosition({ x: newX, y: newY });
           } else {
             // スワイプ用記録
@@ -321,9 +339,7 @@
           if (scale <= 1) {
             resetZoom();
             // スワイプ判定 (スケールが1の時のみ)
-            const startXRaw = touchState.current.startX + position.x;
-            const endXRaw = touchState.current.lastX;
-            const distance = startXRaw - endXRaw;
+            const distance = touchState.current.startX - touchState.current.lastX;
             
             if (distance > 50 && viewerData.currentIndex < viewerData.images.length - 1 && !touchState.current.swiped) {
               touchState.current.swiped = true;
@@ -476,7 +492,13 @@
           ) : (
             <div className="space-y-5 relative z-10">
               {activeTrips.map(trip => {
-                const daysToTrip = trip.startDate ? Math.ceil((new Date(trip.startDate) - new Date()) / (1000 * 60 * 60 * 24)) : null;
+                const daysToTrip = trip.startDate ? (() => {
+                  const [y, m, d] = trip.startDate.split('-').map(Number);
+                  const start = new Date(y, m - 1, d);
+                  start.setHours(0, 0, 0, 0);
+                  const today = new Date(); today.setHours(0, 0, 0, 0);
+                  return Math.ceil((start - today) / (1000 * 60 * 60 * 24));
+                })() : null;
                 return (
                   <GlassCard key={trip.id} className="p-5 relative group border-4 border-white/80 hover:border-white" onClick={() => { setCurrentTripId(trip.id); setView('view'); }}>
                     <div className="absolute top-4 right-4 flex space-x-2 z-10">
@@ -490,6 +512,9 @@
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-1">
+                          {daysToTrip !== null && daysToTrip === 0 && (
+                            <span className={`bg-pink-50 text-pink-500 text-xs font-bold px-2.5 py-1 rounded-full border border-pink-100 shadow-sm`}>今日出発！</span>
+                          )}
                           {daysToTrip !== null && daysToTrip > 0 && daysToTrip <= 30 && (
                             <span className={`bg-orange-50 text-orange-500 text-xs font-bold px-2.5 py-1 rounded-full border border-orange-100 shadow-sm`}>あと {daysToTrip} 日</span>
                           )}
@@ -554,6 +579,13 @@
       const daysCount = calculateDays(currentTrip.startDate, currentTrip.endDate) || 1;
       const [activeDay, setActiveDay] = useState(1);
       const [viewerData, setViewerData] = useState({ isOpen: false, images: [], currentIndex: 0 });
+      
+      // daysCountが減少した場合にactiveDayを範囲内に収める
+      useEffect(() => {
+        if (activeDay > daysCount) {
+          setActiveDay(daysCount);
+        }
+      }, [daysCount, activeDay]);
       
       const titleRef = useRef(null);
       const subtitleRef = useRef(null);
@@ -940,7 +972,8 @@
 
       const currentDayIndex = useMemo(() => {
         if (!currentTrip?.startDate) return null;
-        const start = new Date(currentTrip.startDate); start.setHours(0, 0, 0, 0);
+        const [y, m, d] = currentTrip.startDate.split('-').map(Number);
+        const start = new Date(y, m - 1, d);
         const today = new Date(currentTime); today.setHours(0, 0, 0, 0);
         return Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       }, [currentTrip?.startDate, currentTime]);
@@ -1121,7 +1154,12 @@
                     const cDay = getDayColor(i, currentTheme.id);
                     const schedules = currentTrip.schedules[dayStr] || [];
                     
-                    const dateStr = currentTrip.startDate ? formatDate(new Date(new Date(currentTrip.startDate).setDate(new Date(currentTrip.startDate).getDate() + i))) : '';
+                    const dateStr = currentTrip.startDate ? (() => {
+                      const [y, m, d] = currentTrip.startDate.split('-').map(Number);
+                      const base = new Date(y, m - 1, d);
+                      base.setDate(base.getDate() + i);
+                      return formatDate(base);
+                    })() : '';
                     const isToday = currentDayIndex === parseInt(dayStr);
 
                     return (
@@ -1236,38 +1274,54 @@
               <div className="block print:grid print:grid-cols-2 gap-4 sm:gap-8 page-break mb-12">
                 {currentTrip.items.length > 0 && (
                   <div className={`${activeTab === 'items' ? 'block animate-in fade-in slide-in-from-bottom-2' : 'hidden print:block'} w-full`}>
-                    <Accordion title="持ち物リスト" icon={Briefcase} themeColorName={currentTheme.sections.items} defaultOpen={true} isPrintable={true} className="mb-0 h-fit">
-                      <ul className="space-y-3.5">
-                        {currentTrip.items.map((item, index) => (
-                          <li key={item.id} className="flex items-center text-stone-700 font-bold group cursor-pointer" onClick={() => {
-                            const newItems = [...currentTrip.items]; newItems[index].checked = !newItems[index].checked; updateCurrentTrip({ items: newItems });
-                          }}>
-                            <button className={`w-6 h-6 rounded-md border-[3px] border-stone-200 mr-3 flex items-center justify-center print:border-gray-800 transition-colors bg-white flex-shrink-0 shadow-sm ${item.checked ? cItem.borderMain : ''}`}>
-                              {item.checked && <CheckCircle2 size={18} className={`${cItem.text} no-print`} />}
-                            </button>
-                            <span className={`transition-all break-words w-full ${item.checked ? 'line-through text-stone-300' : ''}`}>{item.name || '名称未設定'}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </Accordion>
+                    <div className={`bg-white/80 backdrop-blur-md rounded-[2rem] shadow-sm border-2 sm:border-4 border-dashed ${cItem.borderLight} overflow-hidden print-card mb-0 h-fit`}>
+                      <div className={`flex items-center p-5 border-b-2 border-dashed ${cItem.borderLight}`}>
+                        <div className={`p-2.5 ${cItem.bgLight} ${cItem.text} rounded-2xl shadow-sm border border-white mr-4`}>
+                          <Briefcase size={22} />
+                        </div>
+                        <h3 className="font-black text-stone-700 text-lg tracking-wide">持ち物リスト</h3>
+                      </div>
+                      <div className="p-5">
+                        <ul className="space-y-3.5">
+                          {currentTrip.items.map((item, index) => (
+                            <li key={item.id} className="flex items-center text-stone-700 font-bold group cursor-pointer" onClick={() => {
+                              const newItems = [...currentTrip.items]; newItems[index].checked = !newItems[index].checked; updateCurrentTrip({ items: newItems });
+                            }}>
+                              <button className={`w-6 h-6 rounded-md border-[3px] border-stone-200 mr-3 flex items-center justify-center print:border-gray-800 transition-colors bg-white flex-shrink-0 shadow-sm ${item.checked ? cItem.borderMain : ''}`}>
+                                {item.checked && <CheckCircle2 size={18} className={`${cItem.text}`} />}
+                              </button>
+                              <span className={`transition-all break-words w-full ${item.checked ? 'line-through text-stone-300' : ''}`}>{item.name || '名称未設定'}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
                   </div>
                 )}
 
                 {currentTrip.budgets.length > 0 && (
                   <div className={`${activeTab === 'budget' ? 'block animate-in fade-in slide-in-from-bottom-2' : 'hidden print:block'} w-full`}>
-                    <Accordion title="予算・費用" icon={DollarSign} themeColorName={currentTheme.sections.budget} defaultOpen={true} isPrintable={true} className="mb-0 h-fit mt-6 print:mt-0">
-                      <div className="space-y-4 mb-5">
-                        {currentTrip.budgets.map(budget => (
-                          <div key={budget.id} className="flex justify-between items-center text-stone-600 font-bold border-b border-stone-100/50 pb-3">
-                            <span className="truncate pr-2">{budget.name || '項目未定'}</span>
-                            <span className="text-stone-700 flex-shrink-0">¥{Number(budget.amount || 0).toLocaleString()}</span>
-                          </div>
-                        ))}
+                    <div className={`bg-white/80 backdrop-blur-md rounded-[2rem] shadow-sm border-2 sm:border-4 border-dashed ${cBudget.borderLight} overflow-hidden print-card mb-0 h-fit mt-6 print:mt-0`}>
+                      <div className={`flex items-center p-5 border-b-2 border-dashed ${cBudget.borderLight}`}>
+                        <div className={`p-2.5 ${cBudget.bgLight} ${cBudget.text} rounded-2xl shadow-sm border border-white mr-4`}>
+                          <DollarSign size={22} />
+                        </div>
+                        <h3 className="font-black text-stone-700 text-lg tracking-wide">予算・費用</h3>
                       </div>
-                      <div className={`flex justify-between items-center pt-2 text-lg font-black ${cBudget.text} bg-white/60 p-4 rounded-2xl border-2 border-white shadow-sm`}>
-                        <span>合計</span><span>¥{totalBudget.toLocaleString()}</span>
+                      <div className="p-5">
+                        <div className="space-y-4 mb-5">
+                          {currentTrip.budgets.map(budget => (
+                            <div key={budget.id} className="flex justify-between items-center text-stone-600 font-bold border-b border-stone-100/50 pb-3">
+                              <span className="truncate pr-2">{budget.name || '項目未定'}</span>
+                              <span className="text-stone-700 flex-shrink-0">¥{Number(budget.amount || 0).toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className={`flex justify-between items-center pt-2 text-lg font-black ${cBudget.text} bg-white/60 p-4 rounded-2xl border-2 border-white shadow-sm`}>
+                          <span>合計</span><span>¥{totalBudget.toLocaleString()}</span>
+                        </div>
                       </div>
-                    </Accordion>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1478,7 +1532,9 @@
       };
 
       const handleCreate = (template = null) => {
-        const newTrip = template ? { ...template, id: generateId(), title: template.title, isTemplate: false, startDate: '', endDate: '' } : getEmptyTrip();
+        const newTrip = template 
+          ? { ...template, id: generateId(), title: template.title, isTemplate: false, startDate: '', endDate: '', createdAt: Date.now(), updatedAt: Date.now() } 
+          : getEmptyTrip();
         setTrips([newTrip, ...trips]); setCurrentTripId(newTrip.id); setView('edit');
       };
 
@@ -1522,7 +1578,7 @@
                       キャンセル
                     </button>
                   )}
-                  <button onClick={() => { if(typeof modalConfig.onConfirm === 'function') modalConfig.onConfirm(); }} className={`flex-1 ${cMain.bgMain} text-white font-bold py-3.5 rounded-2xl ${cMain.bgHover} shadow-md ${cMain.shadowLight} transition-colors border-2 border-white`}>
+                  <button onClick={() => { if(typeof modalConfig.onConfirm === 'function') { modalConfig.onConfirm(); } else { setModalConfig({ isOpen: false, message: '', onConfirm: null, isAlert: false }); } }} className={`flex-1 ${cMain.bgMain} text-white font-bold py-3.5 rounded-2xl ${cMain.bgHover} shadow-md ${cMain.shadowLight} transition-colors border-2 border-white`}>
                     OK
                   </button>
                 </div>
