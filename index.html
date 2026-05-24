@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -170,6 +171,36 @@
       return colorClasses[palette[index % palette.length]];
     };
 
+    // --- 新機能① スケジュールカテゴリアイコン ---
+    const SCHEDULE_CATEGORIES = [
+      { id: 'travel', label: '移動', emoji: '🚗' },
+      { id: 'flight', label: '飛行機', emoji: '✈️' },
+      { id: 'train', label: '電車', emoji: '🚄' },
+      { id: 'hotel', label: 'ホテル', emoji: '🏨' },
+      { id: 'food', label: '食事', emoji: '🍽️' },
+      { id: 'cafe', label: 'カフェ', emoji: '☕' },
+      { id: 'sightseeing', label: '観光', emoji: '🗺️' },
+      { id: 'shopping', label: 'ショッピング', emoji: '🛍️' },
+      { id: 'activity', label: 'アクティビティ', emoji: '🏄' },
+      { id: 'nature', label: '自然', emoji: '🌿' },
+      { id: 'museum', label: '美術館・博物館', emoji: '🏛️' },
+      { id: 'free', label: '自由時間', emoji: '🌟' },
+      { id: 'night', label: '夜', emoji: '🌙' },
+      { id: 'other', label: 'その他', emoji: '📌' },
+    ];
+
+    // --- 新機能③ 持ち物カテゴリ ---
+    const ITEM_CATEGORIES = [
+      { id: 'clothes', label: '衣類', emoji: '👕' },
+      { id: 'documents', label: '書類', emoji: '📄' },
+      { id: 'electronics', label: '電子機器', emoji: '📱' },
+      { id: 'toiletries', label: '洗面・衛生', emoji: '🪥' },
+      { id: 'medicine', label: '医薬品', emoji: '💊' },
+      { id: 'money', label: 'お金・カード', emoji: '💳' },
+      { id: 'food', label: '食品・飲料', emoji: '🧃' },
+      { id: 'other', label: 'その他', emoji: '📦' },
+    ];
+
     // --- Utils ---
     const generateId = () => Math.random().toString(36).substr(2, 9);
     const formatDate = (dateStringOrDate) => {
@@ -267,6 +298,37 @@
     const getEmptyTrip = () => ({
       id: generateId(), title: '', subtitle: '', startDate: '', endDate: '', destination: '', members: [], memo: '', coverImage: '', items: [], budgets: [], schedules: { 1: [] }, isTemplate: false, createdAt: Date.now(), updatedAt: Date.now()
     });
+
+    // 新機能② 割り勘計算ロジック
+    const calcSplitBill = (budgets, members) => {
+      if (!members || members.length < 2) return [];
+      const payments = {};
+      members.forEach(m => payments[m] = 0);
+      let total = 0;
+      budgets.forEach(b => {
+        const amt = Number(b.amount) || 0;
+        total += amt;
+        if (b.paidBy && payments[b.paidBy] !== undefined) {
+          payments[b.paidBy] += amt;
+        }
+      });
+      const perPerson = total / members.length;
+      const balances = members.map(m => ({ name: m, balance: (payments[m] || 0) - perPerson }));
+      const settlements = [];
+      const debtors = balances.filter(b => b.balance < -0.5).map(b => ({ ...b }));
+      const creditors = balances.filter(b => b.balance > 0.5).map(b => ({ ...b }));
+      debtors.forEach(debtor => {
+        while (Math.abs(debtor.balance) > 0.5 && creditors.length > 0) {
+          const creditor = creditors[0];
+          const amount = Math.min(Math.abs(debtor.balance), creditor.balance);
+          settlements.push({ from: debtor.name, to: creditor.name, amount: Math.round(amount) });
+          debtor.balance += amount;
+          creditor.balance -= amount;
+          if (creditor.balance < 0.5) creditors.shift();
+        }
+      });
+      return settlements;
+    };
 
     // --- Components ---
     
@@ -478,6 +540,31 @@
             </div>
           </div>
 
+          {/* 新機能⑤ 次の旅のカウントダウン */}
+          {(() => {
+            const upcoming = activeTrips.filter(t => t.startDate).map(t => {
+              const [y,m,d] = t.startDate.split('-').map(Number);
+              const start = new Date(y, m-1, d); start.setHours(0,0,0,0);
+              const today = new Date(); today.setHours(0,0,0,0);
+              const days = Math.ceil((start - today) / (1000*60*60*24));
+              return { ...t, daysLeft: days };
+            }).filter(t => t.daysLeft > 0).sort((a,b) => a.daysLeft - b.daysLeft)[0];
+            if (!upcoming) return null;
+            return (
+              <div className={`mb-8 relative overflow-hidden bg-gradient-to-r ${cMain.gradient} rounded-[2rem] p-5 shadow-md border-4 border-white text-white relative z-10`} onClick={() => { setCurrentTripId(upcoming.id); setView('view'); }} style={{cursor:'pointer'}}>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8"></div>
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-10 -translate-x-6"></div>
+                <p className="text-xs font-black tracking-widest uppercase opacity-80 mb-1">✈️ 次の旅まで</p>
+                <div className="flex items-baseline gap-2 relative z-10">
+                  <span className="text-5xl font-black drop-shadow-sm">{upcoming.daysLeft}</span>
+                  <span className="text-xl font-black opacity-90">日</span>
+                </div>
+                <p className="text-sm font-bold opacity-90 mt-1 relative z-10 truncate">{upcoming.title || '無題の旅行'}</p>
+                <p className="text-xs opacity-70 mt-0.5 relative z-10">{formatDate(upcoming.startDate)} 出発</p>
+              </div>
+            );
+          })()}
+
           {activeTrips.length === 0 ? (
             <div className="text-center py-20 bg-white/90 backdrop-blur-sm rounded-[2rem] border-4 border-dashed border-stone-200/50 shadow-sm relative z-10">
               <div className={`${cMain.bgLight} w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-white shadow-sm`}>
@@ -604,7 +691,7 @@
       
       const handleAddSchedule = (day) => {
         const daySchedules = currentTrip.schedules[day] || [];
-        updateSchedules({ ...currentTrip.schedules, [day]: [...daySchedules, { id: generateId(), time: '10:00', content: '', location: '', mapLink: '', infoLink: '', infoLinkLabel: '', memo: '', images: [] }] });
+        updateSchedules({ ...currentTrip.schedules, [day]: [...daySchedules, { id: generateId(), time: '10:00', content: '', location: '', mapLink: '', infoLink: '', infoLinkLabel: '', memo: '', images: [], category: '' }] });
       };
 
       const moveSchedule = (day, index, direction) => {
@@ -805,6 +892,26 @@
                                       newSchedules[index].content = e.target.value; updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
                                     }}/>
                                     
+                                    {/* 新機能① カテゴリアイコン選択 */}
+                                    <div className="mb-3">
+                                      <p className="text-xs font-black text-stone-400 uppercase tracking-widest mb-1.5 ml-1">カテゴリ</p>
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {SCHEDULE_CATEGORIES.map(cat => (
+                                          <button
+                                            key={cat.id}
+                                            onClick={() => {
+                                              const newSchedules = [...currentTrip.schedules[activeDay]];
+                                              newSchedules[index].category = newSchedules[index].category === cat.id ? '' : cat.id;
+                                              updateSchedules({ ...currentTrip.schedules, [activeDay]: newSchedules });
+                                            }}
+                                            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all border-2 ${item.category === cat.id ? `${currentCDay.bgMain} text-white border-white shadow-md` : `bg-white/70 text-stone-500 border-white hover:border-stone-200`}`}
+                                          >
+                                            <span>{cat.emoji}</span><span>{cat.label}</span>
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                    
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                                       <div className={`flex items-center bg-white/60 rounded-xl px-3 border-2 border-white transition-all ${currentCDay.ring} shadow-sm`}>
                                         <MapPin size={16} className={`${currentCDay.text} mr-2 flex-shrink-0 opacity-70`} />
@@ -892,48 +999,103 @@
               {/* Items & Budget */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Accordion title="持ち物リスト" icon={Briefcase} themeColorName={currentTheme.sections.items} rightAction={
-                    <button onClick={() => updateItems([...currentTrip.items, { id: generateId(), name: '', checked: false }])} className={`${cItem.text} p-1.5 ${cItem.bgLight} rounded-full ${cItem.bgHover} hover:text-white transition-colors border border-white shadow-sm`}><Plus size={18} /></button>
+                    <button onClick={() => updateItems([...currentTrip.items, { id: generateId(), name: '', checked: false, category: 'other' }])} className={`${cItem.text} p-1.5 ${cItem.bgLight} rounded-full ${cItem.bgHover} hover:text-white transition-colors border border-white shadow-sm`}><Plus size={18} /></button>
                   }>
-                  <div className="space-y-3">
-                    {currentTrip.items.map((item, index) => (
-                      <div key={item.id} className="flex items-center group bg-white/60 rounded-2xl p-2 px-3 border-2 border-white shadow-sm">
-                        <button className={`mr-3 transition-colors ${item.checked ? cItem.text : 'text-stone-300 hover:text-stone-400'}`} onClick={() => {
-                            const newItems = [...currentTrip.items]; newItems[index].checked = !newItems[index].checked; updateItems(newItems);
-                          }}>
-                          {item.checked ? <CheckCircle2 size={22} /> : <Circle size={22} />}
-                        </button>
-                        <input type="text" className={`flex-1 outline-none bg-transparent py-1 font-bold ${item.checked ? 'line-through text-stone-300' : 'text-stone-700'}`} value={item.name} placeholder="持ち物を入力" onChange={(e) => {
-                            const newItems = [...currentTrip.items]; newItems[index].name = e.target.value; updateItems(newItems);
-                          }}/>
-                        <button className="text-stone-300 hover:text-rose-400 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1 transition-all" onClick={() => updateItems(currentTrip.items.filter((_, i) => i !== index))}><Trash2 size={16} /></button>
-                      </div>
-                    ))}
-                    {currentTrip.items.length === 0 && <p className="text-sm text-stone-400 text-center py-4 font-bold">持ち物を追加しましょう</p>}
+                  <div className="space-y-4">
+                    {/* 新機能③ カテゴリ別グループ表示 */}
+                    {ITEM_CATEGORIES.map(cat => {
+                      const catItems = currentTrip.items.map((it, idx) => ({ ...it, _idx: idx })).filter(it => (it.category || 'other') === cat.id);
+                      if (catItems.length === 0) return null;
+                      return (
+                        <div key={cat.id}>
+                          <p className="text-xs font-black text-stone-400 uppercase tracking-widest mb-1.5 flex items-center gap-1"><span>{cat.emoji}</span>{cat.label}</p>
+                          <div className="space-y-2">
+                            {catItems.map(item => (
+                              <div key={item.id} className="flex items-center group bg-white/60 rounded-2xl p-2 px-3 border-2 border-white shadow-sm">
+                                <button className={`mr-3 transition-colors ${item.checked ? cItem.text : 'text-stone-300 hover:text-stone-400'}`} onClick={() => {
+                                    const newItems = [...currentTrip.items]; newItems[item._idx].checked = !newItems[item._idx].checked; updateItems(newItems);
+                                  }}>
+                                  {item.checked ? <CheckCircle2 size={22} /> : <Circle size={22} />}
+                                </button>
+                                <input type="text" className={`flex-1 outline-none bg-transparent py-1 font-bold ${item.checked ? 'line-through text-stone-300' : 'text-stone-700'}`} value={item.name} placeholder="持ち物を入力" onChange={(e) => {
+                                    const newItems = [...currentTrip.items]; newItems[item._idx].name = e.target.value; updateItems(newItems);
+                                  }}/>
+                                <select className="text-xs bg-transparent outline-none text-stone-400 font-bold mr-1 cursor-pointer" value={item.category || 'other'} onChange={e => {
+                                    const newItems = [...currentTrip.items]; newItems[item._idx].category = e.target.value; updateItems(newItems);
+                                  }}>
+                                  {ITEM_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.emoji}</option>)}
+                                </select>
+                                <button className="text-stone-300 hover:text-rose-400 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1 transition-all" onClick={() => updateItems(currentTrip.items.filter((_, i) => i !== item._idx))}><Trash2 size={16} /></button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {/* カテゴリ未分類 */}
+                    {currentTrip.items.filter(it => !it.category || it.category === 'other').length === 0 && currentTrip.items.length === 0 && <p className="text-sm text-stone-400 text-center py-4 font-bold">持ち物を追加しましょう</p>}
                   </div>
                 </Accordion>
 
-                <Accordion title="予算" icon={DollarSign} themeColorName={currentTheme.sections.budget} rightAction={
-                    <button onClick={() => updateBudgets([...currentTrip.budgets, { id: generateId(), name: '', amount: '' }])} className={`${cBudget.text} p-1.5 ${cBudget.bgLight} rounded-full ${cBudget.bgHover} hover:text-white transition-colors border border-white shadow-sm`}><Plus size={18} /></button>
+                <Accordion title="予算・割り勘" icon={DollarSign} themeColorName={currentTheme.sections.budget} rightAction={
+                    <button onClick={() => updateBudgets([...currentTrip.budgets, { id: generateId(), name: '', amount: '', paidBy: '' }])} className={`${cBudget.text} p-1.5 ${cBudget.bgLight} rounded-full ${cBudget.bgHover} hover:text-white transition-colors border border-white shadow-sm`}><Plus size={18} /></button>
                   }>
                   <div className="space-y-3 mb-5">
                     {currentTrip.budgets.map((budget, index) => (
-                      <div key={budget.id} className="flex items-center gap-2 group">
-                        <input type="text" className={`flex-1 outline-none bg-white/60 rounded-2xl px-3 py-2.5 text-sm font-bold border-2 border-white transition-all ${cBudget.ring} shadow-sm`} value={budget.name} placeholder="項目 (例: 交通費)" onChange={(e) => {
-                            const newBudgets = [...currentTrip.budgets]; newBudgets[index].name = e.target.value; updateBudgets(newBudgets);
-                          }}/>
-                        <div className="relative w-32">
-                          <span className={`absolute left-3 top-2.5 ${cBudget.text} opacity-70 text-sm font-bold`}>¥</span>
-                          <input type="number" className={`w-full outline-none bg-white/60 rounded-2xl pl-7 pr-3 py-2.5 text-sm font-bold border-2 border-white text-right transition-all text-stone-700 ${cBudget.ring} shadow-sm`} value={budget.amount} placeholder="0" onChange={(e) => {
-                              const newBudgets = [...currentTrip.budgets]; newBudgets[index].amount = e.target.value; updateBudgets(newBudgets);
+                      <div key={budget.id} className="space-y-1.5 group bg-white/50 rounded-2xl p-3 border-2 border-white shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <input type="text" className={`flex-1 outline-none bg-white/60 rounded-xl px-3 py-2 text-sm font-bold border-2 border-white transition-all ${cBudget.ring} shadow-sm`} value={budget.name} placeholder="項目 (例: 交通費)" onChange={(e) => {
+                              const newBudgets = [...currentTrip.budgets]; newBudgets[index].name = e.target.value; updateBudgets(newBudgets);
                             }}/>
+                          <div className="relative w-28">
+                            <span className={`absolute left-3 top-2.5 ${cBudget.text} opacity-70 text-sm font-bold`}>¥</span>
+                            <input type="number" className={`w-full outline-none bg-white/60 rounded-xl pl-7 pr-2 py-2 text-sm font-bold border-2 border-white text-right transition-all text-stone-700 ${cBudget.ring} shadow-sm`} value={budget.amount} placeholder="0" onChange={(e) => {
+                                const newBudgets = [...currentTrip.budgets]; newBudgets[index].amount = e.target.value; updateBudgets(newBudgets);
+                              }}/>
+                          </div>
+                          <button className="text-stone-300 hover:text-rose-400 p-1.5 transition-all" onClick={() => updateBudgets(currentTrip.budgets.filter((_, i) => i !== index))}><Trash2 size={16} /></button>
                         </div>
-                        <button className="text-stone-300 hover:text-rose-400 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 transition-all" onClick={() => updateBudgets(currentTrip.budgets.filter((_, i) => i !== index))}><Trash2 size={18} /></button>
+                        {/* 新機能② 支払者選択 */}
+                        {currentTrip.members.length > 0 && (
+                          <div className="flex items-center gap-1.5 pl-1">
+                            <span className="text-xs text-stone-400 font-bold">支払：</span>
+                            <div className="flex flex-wrap gap-1">
+                              {currentTrip.members.map(member => (
+                                <button key={member} onClick={() => {
+                                    const newBudgets = [...currentTrip.budgets];
+                                    newBudgets[index].paidBy = newBudgets[index].paidBy === member ? '' : member;
+                                    updateBudgets(newBudgets);
+                                  }} className={`text-xs px-2.5 py-0.5 rounded-full font-bold transition-all border ${budget.paidBy === member ? `${cBudget.bgMain} text-white border-white` : `bg-white text-stone-400 border-stone-100`}`}>
+                                  {member}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
-                  <div className={`flex justify-between items-center p-4 ${cBudget.bgLight} border-2 border-white ${cBudget.text} rounded-2xl font-black text-lg shadow-sm`}>
+                  <div className={`flex justify-between items-center p-4 ${cBudget.bgLight} border-2 border-white ${cBudget.text} rounded-2xl font-black text-lg shadow-sm mb-4`}>
                     <span>合計予算</span><span>¥{totalBudget.toLocaleString()}</span>
                   </div>
+                  {/* 新機能② 割り勘精算結果 */}
+                  {currentTrip.members.length >= 2 && currentTrip.budgets.some(b => b.paidBy) && (() => {
+                    const settlements = calcSplitBill(currentTrip.budgets, currentTrip.members);
+                    if (settlements.length === 0) return null;
+                    return (
+                      <div className={`p-4 ${cBudget.bgLight} border-2 border-dashed ${cBudget.borderMain} rounded-2xl`}>
+                        <p className={`text-xs font-black tracking-widest uppercase ${cBudget.text} mb-3`}>💸 割り勘精算</p>
+                        <div className="space-y-2">
+                          {settlements.map((s, i) => (
+                            <div key={i} className="flex items-center justify-between bg-white/70 rounded-xl px-3 py-2 shadow-sm">
+                              <span className="text-sm font-bold text-stone-600">{s.from} → {s.to}</span>
+                              <span className={`text-sm font-black ${cBudget.text}`}>¥{s.amount.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </Accordion>
               </div>
             </div>
@@ -1213,7 +1375,10 @@
                                       {/* カード本体 */}
                                       <div className={`w-full bg-white/90 backdrop-blur-sm print:bg-transparent rounded-[2rem] p-4 sm:p-5 pt-7 sm:pt-8 shadow-sm print:shadow-none border-2 sm:border-4 border-dashed ${cDay.borderLight} print:border-none print:p-0 relative overflow-hidden group hover:shadow-md transition-all`}>
                                         <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${cDay.bgLight}`}></div>
-                                        <h4 className="text-xl font-extrabold text-stone-700 tracking-tight leading-snug break-words w-full mb-3">{item.content || '予定なし'}</h4>
+                                        <h4 className="text-xl font-extrabold text-stone-700 tracking-tight leading-snug break-words w-full mb-3">
+                                          {(() => { const cat = SCHEDULE_CATEGORIES.find(c => c.id === item.category); return cat ? <span className="mr-2">{cat.emoji}</span> : null; })()}
+                                          {item.content || '予定なし'}
+                                        </h4>
                                         
                                         <div className="flex flex-wrap gap-2 mb-2 w-full">
                                           {item.location && (
@@ -1282,17 +1447,31 @@
                         <h3 className="font-black text-stone-700 text-lg tracking-wide">持ち物リスト</h3>
                       </div>
                       <div className="p-5">
-                        <ul className="space-y-3.5">
-                          {currentTrip.items.map((item, index) => (
-                            <li key={item.id} className="flex items-center text-stone-700 font-bold group cursor-pointer" onClick={() => {
-                              const newItems = [...currentTrip.items]; newItems[index].checked = !newItems[index].checked; updateCurrentTrip({ items: newItems });
-                            }}>
-                              <button className={`w-6 h-6 rounded-md border-[3px] border-stone-200 mr-3 flex items-center justify-center print:border-gray-800 transition-colors bg-white flex-shrink-0 shadow-sm ${item.checked ? cItem.borderMain : ''}`}>
-                                {item.checked && <CheckCircle2 size={18} className={`${cItem.text}`} />}
-                              </button>
-                              <span className={`transition-all break-words w-full ${item.checked ? 'line-through text-stone-300' : ''}`}>{item.name || '名称未設定'}</span>
-                            </li>
-                          ))}
+                        <ul className="space-y-1">
+                          {ITEM_CATEGORIES.map(cat => {
+                            const catItems = currentTrip.items.filter(it => (it.category || 'other') === cat.id);
+                            if (catItems.length === 0) return null;
+                            return (
+                              <li key={cat.id}>
+                                <p className="text-xs font-black text-stone-400 uppercase tracking-widest mt-3 mb-1.5 flex items-center gap-1"><span>{cat.emoji}</span>{cat.label}</p>
+                                <ul className="space-y-2.5">
+                                  {catItems.map((item, index) => {
+                                    const realIndex = currentTrip.items.findIndex(it => it.id === item.id);
+                                    return (
+                                      <li key={item.id} className="flex items-center text-stone-700 font-bold group cursor-pointer" onClick={() => {
+                                        const newItems = [...currentTrip.items]; newItems[realIndex].checked = !newItems[realIndex].checked; updateCurrentTrip({ items: newItems });
+                                      }}>
+                                        <button className={`w-6 h-6 rounded-md border-[3px] border-stone-200 mr-3 flex items-center justify-center print:border-gray-800 transition-colors bg-white flex-shrink-0 shadow-sm ${item.checked ? cItem.borderMain : ''}`}>
+                                          {item.checked && <CheckCircle2 size={18} className={`${cItem.text}`} />}
+                                        </button>
+                                        <span className={`transition-all break-words w-full ${item.checked ? 'line-through text-stone-300' : ''}`}>{item.name || '名称未設定'}</span>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              </li>
+                            );
+                          })}
                         </ul>
                       </div>
                     </div>
@@ -1320,6 +1499,24 @@
                         <div className={`flex justify-between items-center pt-2 text-lg font-black ${cBudget.text} bg-white/60 p-4 rounded-2xl border-2 border-white shadow-sm`}>
                           <span>合計</span><span>¥{totalBudget.toLocaleString()}</span>
                         </div>
+                        {/* 新機能② Viewer割り勘精算 */}
+                        {currentTrip.members.length >= 2 && currentTrip.budgets.some(b => b.paidBy) && (() => {
+                          const settlements = calcSplitBill(currentTrip.budgets, currentTrip.members);
+                          if (settlements.length === 0) return null;
+                          return (
+                            <div className={`mt-4 p-4 ${cBudget.bgLight} border-2 border-dashed ${cBudget.borderMain} rounded-2xl`}>
+                              <p className={`text-xs font-black tracking-widest uppercase ${cBudget.text} mb-3`}>💸 割り勘精算</p>
+                              <div className="space-y-2">
+                                {settlements.map((s, i) => (
+                                  <div key={i} className="flex items-center justify-between bg-white/70 rounded-xl px-3 py-2 shadow-sm">
+                                    <span className="text-sm font-bold text-stone-600">{s.from} → {s.to}</span>
+                                    <span className={`text-sm font-black ${cBudget.text}`}>¥{s.amount.toLocaleString()}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
