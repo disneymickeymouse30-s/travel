@@ -1,5 +1,6 @@
 
 
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -1720,7 +1721,29 @@
         if (metaThemeColor) metaThemeColor.setAttribute('content', currentTheme.bgHex);
       }, [currentTheme]);
 
-      const activeTrips = useMemo(() => trips.filter(t => !t.isTemplate).sort((a, b) => b.updatedAt - a.updatedAt), [trips]);
+      const activeTrips = useMemo(() => {
+        const toNum = (d) => {
+          const [y, m, dd] = d.split('-').map(Number);
+          return new Date(y, m - 1, dd).getTime();
+        };
+        const todayNum = (() => { const t = new Date(); t.setHours(0,0,0,0); return t.getTime(); })();
+        const isEnded = (trip) => {
+          if (!trip.endDate) return false;
+          return toNum(trip.endDate) < todayNum;
+        };
+        return trips.filter(t => !t.isTemplate).sort((a, b) => {
+          const aEnded = isEnded(a);
+          const bEnded = isEnded(b);
+          // 終了済みは末尾へ
+          if (aEnded !== bEnded) return aEnded ? 1 : -1;
+          // 日程未定は終了済みの直前へ
+          if (!a.startDate && !b.startDate) return b.updatedAt - a.updatedAt;
+          if (!a.startDate) return 1;
+          if (!b.startDate) return -1;
+          // startDate の昇順（時系列）
+          return toNum(a.startDate) - toNum(b.startDate);
+        });
+      }, [trips]);
       const templates = useMemo(() => trips.filter(t => t.isTemplate).sort((a, b) => b.updatedAt - a.updatedAt), [trips]);
       const currentTrip = useMemo(() => trips.find(t => t.id === currentTripId), [trips, currentTripId]);
 
